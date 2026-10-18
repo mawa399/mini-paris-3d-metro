@@ -1,0 +1,5 @@
+.env
+data/sources/IDFM-gtfs.zip
+__pycache__/
+*.pyc
+.DS_Store
