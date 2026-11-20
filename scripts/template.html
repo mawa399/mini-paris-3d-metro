@@ -374,7 +374,7 @@ function activeTrains(T) {
 /* ---------- Rames en 3D : une rame = plusieurs voitures ---------- */
 // nombre de voitures par ligne (MP14 en 8 voitures sur la 14, 6 sur les lignes 1 et 4, navettes 3bis et 7bis)
 const CARS = { '14': 8, '1': 6, '4': 6, '3b': 3, '7b': 3 };
-const CAR = { length: 15, gap: 1.2, width: 2.7, height: 3.6 };
+const CAR = { length: 15, gap: 1.2, width: 3.2, height: 3.8 };
 // à petite échelle les rames réelles seraient invisibles : on les grossit progressivement en dézoomant
 function trainScale() {
   const z = state.zoom;
@@ -528,7 +528,7 @@ const NIGHT = {
       paint: { 'line-color': '#212c45', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 10, 0.8, 18, 24] } },
     { id: 'batiments', type: 'fill-extrusion', source: 'omt', 'source-layer': 'building', minzoom: 13,
       paint: {
-        'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 10], 0, '#182036', 25, '#1e2840', 60, '#28344f'],
+        'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 10], 0, '#1c2540', 25, '#243052', 60, '#31406a'],
         'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 13, 0, 14.5, ['coalesce', ['get', 'render_height'], 10]],
         'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
         'fill-extrusion-opacity': 0.82
@@ -567,10 +567,11 @@ const lineLayers = () => {
     new PathLayer({ id: 'lines-glow', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
       getColor: r => [...lineColor[r.line], close ? 30 : 55], getWidth: close ? 14 : 9, widthUnits: 'pixels', jointRounded: true, capRounded: true,
       updateTriggers: { data: [...state.hidden].join(), getColor: close, getWidth: close } }),
-    // voies : 3 px de loin, puis la largeur réelle d'une double voie (~7 m) de près
+    // voies : 3 px de loin, puis la largeur réelle d'une double voie (~7 m) de près, assombries pour que les rames ressortent
     new PathLayer({ id: 'lines', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
-      getColor: r => lineColor[r.line], getWidth: 7, widthUnits: 'meters', widthMinPixels: 3, jointRounded: true, capRounded: true,
-      updateTriggers: { data: [...state.hidden].join() } }),
+      getColor: r => close ? lineColor[r.line].map(v => Math.round(v * 0.38 + 11 * 0.62)) : lineColor[r.line],
+      getWidth: 7, widthUnits: 'meters', widthMinPixels: 3, jointRounded: true, capRounded: true,
+      updateTriggers: { data: [...state.hidden].join(), getColor: close } }),
     // quais en 3D, visibles de près
     new SolidPolygonLayer({ id: 'quais', data: PLATFORMS.filter(q => !state.hidden.has(q.line)), visible: close,
       getPolygon: q => q.polygon, extruded: true, getElevation: 1.1, getFillColor: [196, 205, 226, 235],
@@ -674,7 +675,7 @@ function render() {
   overlay.setProps({ layers: [
     ...baseLayers(), ...lineLayers(),
     new SolidPolygonLayer({ id: 'trains', data: cars, getPolygon: c => c.polygon, extruded: true,
-      getElevation: c => c.height, getFillColor: c => c.head ? c.t.color.map(v => Math.min(255, v + 35)) : c.t.color, pickable: true,
+      getElevation: c => c.height, getFillColor: c => c.t.color.map(v => Math.min(255, Math.round(v + (255 - v) * (c.head ? 0.45 : 0.25)))), pickable: true,
       material: { ambient: 0.7, diffuse: 0.6, shininess: 24, specularColor: [70, 70, 70] } }),
     new SolidPolygonLayer({ id: 'selected', data: selCars, getPolygon: c => c.polygon, extruded: true,
       getElevation: c => c.height * 1.35, getFillColor: [255, 205, 0, 90], wireframe: true, getLineColor: [255, 205, 0] })
