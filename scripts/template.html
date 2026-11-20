@@ -25,6 +25,8 @@ html, body { height: 100%; }
 body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--body); overflow: hidden; }
 #map { position: fixed; inset: 0; }
 #map canvas { outline: none; }
+.maplibregl-ctrl-attrib { display: none; }
+.maplibregl-ctrl-bottom-right { bottom: 96px; }
 
 .panel {
   position: fixed; z-index: 5;
@@ -96,11 +98,36 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 #info dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
 #info dt { color: var(--muted); }
 #info dd { margin: 0; font-variant-numeric: tabular-nums; }
-#close { position: absolute; top: 8px; right: 8px; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; padding: 4px 8px; }
+#close, #s-close { position: absolute; top: 8px; right: 8px; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; padding: 4px 8px; }
+#info .cam { display: flex; gap: 6px; }
+#info .cam button { flex: 1; font: 600 13px var(--body); color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 6px 8px; cursor: pointer; }
+#info .cam button[aria-pressed="true"] { background: var(--signal); color: #111; border-color: var(--signal); }
+
+/* Tableau des départs d'une station */
+#station {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: max(12px, env(safe-area-inset-right, 0px));
+  width: min(320px, calc(100vw - 24px));
+  max-height: calc(100vh - 120px); overflow-y: auto;
+  padding: 14px 16px; display: grid; gap: 10px;
+}
+#station h2 { margin: 0 28px 0 0; font: 600 21px/1.1 var(--display); }
+#station h2 small { display: block; color: var(--muted); font: 500 12px var(--body); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+#s-board { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+#s-board li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--rule); }
+#s-board .times { display: flex; gap: 14px; }
+#s-board .badge { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--display); }
+#s-board .dest { font-size: 13.5px; line-height: 1.25; }
+#s-board .dest small { display: block; color: var(--muted); font-size: 11.5px; }
+#s-board .when { font: 600 19px var(--display); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+#s-board .when small { display: block; font: 500 11px var(--body); color: var(--muted); }
+#s-board .when.live { color: #3ddc84; }
+#s-empty { margin: 0; color: var(--muted); font-size: 13px; }
 
 #credits {
   position: fixed; z-index: 4; right: max(12px, env(safe-area-inset-right, 0px));
   bottom: calc(60px + env(safe-area-inset-bottom, 0px));
+  margin-right: 44px;
   font-size: 10.5px; color: var(--muted); text-align: right; line-height: 1.4; pointer-events: none;
 }
 #loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--display); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
@@ -154,10 +181,23 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
     <dt>Départ terminus</dt><dd id="i-dep"></dd>
     <dt>Parcours</dt><dd id="i-prog"></dd>
   </dl>
+  <div class="cam" role="group" aria-label="Caméra">
+    <button type="button" id="b-follow" aria-pressed="false">Suivre</button>
+    <button type="button" id="b-cabin" aria-pressed="false">Vue cabine</button>
+  </div>
 </aside>
 
-<div id="credits"><span id="credits-src">Données : Île-de-France Mobilités (open data) · © contributeurs OpenStreetMap<br>Horaires théoriques GTFS, sans le temps réel</span></div>
+<aside id="station" class="panel" hidden aria-live="polite">
+  <button id="s-close" type="button" aria-label="Fermer">×</button>
+  <h2><small>Prochains départs</small><span id="s-name"></span></h2>
+  <ul id="s-board"></ul>
+  <p id="s-empty" hidden>Aucun départ dans l'heure.</p>
+</aside>
 
+<div id="credits"><span id="credits-src">Données : Île-de-France Mobilités (open data) · Carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap<br>Horaires théoriques GTFS, sans le temps réel</span></div>
+
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/deck.gl@8.9.35/dist.min.js"></script>
 <script>
 const NETWORK = __NETWORK__;
@@ -217,29 +257,13 @@ function locate(route, dist) {
   const seg = (cum[hi] - cum[lo]) || 1, f = (dist - cum[lo]) / seg;
   return [p[lo][0] + (p[hi][0] - p[lo][0]) * f, p[lo][1] + (p[hi][1] - p[lo][1]) * f];
 }
-// polygone d'une rame : le corps suit la courbe de la voie, avec une largeur et une longueur en mètres
-function trainPolygon(route, center, length, width) {
-  const n = 8, pts = [];
-  for (let i = 0; i <= n; i++) pts.push(locate(route, center - length / 2 + (length * i) / n));
-  const left = [], right = [];
-  for (let i = 0; i < pts.length; i++) {
-    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
-    const kx = Math.cos(pts[i][1] * Math.PI / 180) * M_PER_DEG_LAT;
-    let dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * M_PER_DEG_LAT;
-    const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
-    const ox = (-dy * width / 2) / kx, oy = (dx * width / 2) / M_PER_DEG_LAT;
-    left.push([pts[i][0] + ox, pts[i][1] + oy]);
-    right.push([pts[i][0] - ox, pts[i][1] - oy]);
-  }
-  return left.concat(right.reverse());
-}
 const ease = f => f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
 
 /* ---------- État de la simulation ---------- */
 const initial = parisNow();
 const state = {
   simTime: initial.secs, dayType: initial.type, autoDay: true, speed: 1, playing: true,
-  hidden: new Set(), selected: null, zoom: 12
+  hidden: new Set(), selected: null, zoom: 12, station: null, cam: null
 };
 let dayLabel = initial.label;
 
@@ -283,7 +307,7 @@ function matchPattern(line, dest, names) {
   matchCache.set(key, best);
   return best;
 }
-function realtimeTrains(line, scale) {
+function realtimeTrains(line) {
   const out = [];
   const nowMs = Date.now();
   const seen = new Set();
@@ -304,7 +328,7 @@ function realtimeTrains(line, scale) {
     out.push({
       id: 'rt-' + j.id, live: true, eta: future[0], next: pos.next, atStop: pos.atStop, e, pr, pat,
       x, y, ncalls: j.calls.length, dest: pat.stops[pat.stops.length - 1].name,
-      polygon: trainPolygon(pat.shape, pos.d, 120 * scale, 34 * scale), height: 26 * scale, color: lineColor[line]
+      d: pos.d, color: lineColor[line]
     });
   }
   // une même rame peut figurer deux fois dans le flux (deux sources) : on fusionne les rames
@@ -328,7 +352,6 @@ function activeTrains(T) {
   const out = [];
   const live = liveLines();
   const D = DAYS[state.dayType];
-  const scale = Math.max(1, Math.pow(2, 13.2 - state.zoom)); // grossit les rames quand on dézoome
   // premiers départs susceptibles d'être encore en ligne
   let lo = 0, hi = D.start.length;
   while (lo < hi) { const m = (lo + hi) >> 1; if (D.start[m] < T - D.maxDur) lo = m + 1; else hi = m; }
@@ -341,90 +364,320 @@ function activeTrains(T) {
     const { d, atStop, next } = pos;
     out.push({
       id: `${state.dayType}-${k}`, k, e, next, atStop, pr, pat, start: D.start[k],
-      polygon: trainPolygon(pat.shape, d, 120 * scale, 34 * scale),
-      height: 26 * scale,
-      color: lineColor[pat.line]
+      d, color: lineColor[pat.line]
     });
   }
-  for (const l of live) if (!state.hidden.has(l)) out.push(...realtimeTrains(l, scale));
+  for (const l of live) if (!state.hidden.has(l)) out.push(...realtimeTrains(l));
   return out;
 }
 
-/* ---------- Couches deck.gl ---------- */
-const { DeckGL, PathLayer, SolidPolygonLayer, ScatterplotLayer, TextLayer, PolygonLayer, LightingEffect, AmbientLight, DirectionalLight } = deck;
+/* ---------- Rames en 3D : une rame = plusieurs voitures ---------- */
+// nombre de voitures par ligne (MP14 en 8 voitures sur la 14, 6 sur les lignes 1 et 4, navettes 3bis et 7bis)
+const CARS = { '14': 8, '1': 6, '4': 6, '3b': 3, '7b': 3 };
+const CAR = { length: 15, gap: 1.2, width: 2.7, height: 3.6 };
+// à petite échelle les rames réelles seraient invisibles : on les grossit progressivement en dézoomant
+function trainScale() {
+  const z = state.zoom;
+  return { len: Math.max(1, Math.pow(2, 14.6 - z)), wid: Math.max(1, Math.pow(2, 16 - z)) };
+}
+function carPolygon(route, center, length, width) {
+  const pts = [locate(route, center - length / 2), locate(route, center), locate(route, center + length / 2)];
+  const left = [], right = [];
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)];
+    const kx = Math.cos(pts[i][1] * Math.PI / 180) * M_PER_DEG_LAT;
+    let dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * M_PER_DEG_LAT;
+    const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+    const ox = (-dy * width / 2) / kx, oy = (dx * width / 2) / M_PER_DEG_LAT;
+    left.push([pts[i][0] + ox, pts[i][1] + oy]);
+    right.push([pts[i][0] - ox, pts[i][1] - oy]);
+  }
+  return left.concat(right.reverse());
+}
+function trainCars(t, sc) {
+  const n = CARS[t.pat.line] || 5;
+  const len = CAR.length * sc.len, gap = CAR.gap * sc.len, wid = Math.min(CAR.width * sc.wid, len * 0.55);
+  const total = n * len + (n - 1) * gap;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    // la tête de la rame est devant (sens des distances croissantes)
+    const c = t.d - total / 2 + len / 2 + i * (len + gap);
+    out.push({ t, polygon: carPolygon(t.pat.shape, c, len, wid), height: CAR.height * Math.min(sc.wid, sc.len * 2), head: i === n - 1 });
+  }
+  return out;
+}
 
-const baseLayers = () => {
-  const zoom = state.zoom;
+/* ---------- Gares : liaison carte ↔ horaires par la position ---------- */
+// les noms des gares diffèrent parfois entre le référentiel des gares et le GTFS ("Alma - Marceau" / "Alma-Marceau") :
+// chaque arrêt d'un motif est rattaché à la gare la plus proche qui dessert la même ligne
+const STOPS_OF = STATIONS.map(() => []); // gare → [{pat, i, pos}]
+const PLATFORMS = [];
+{
+  const seenQuay = new Set();
+  for (const pat of PATTERNS) {
+    pat.stops.forEach((st, i) => {
+      const pos = locate(pat.shape, st.d);
+      const k = Math.cos(pos[1] * Math.PI / 180);
+      let best = -1, bd = 400;
+      STATIONS.forEach((s, si) => {
+        if (!s.l.includes(pat.line)) return;
+        const dd = Math.hypot((s.p[0] - pos[0]) * k * M_PER_DEG_LAT, (s.p[1] - pos[1]) * M_PER_DEG_LAT);
+        if (dd < bd) { bd = dd; best = si; }
+      });
+      if (best >= 0) STOPS_OF[best].push({ pat, i, pos });
+      // un quai par ligne et par gare, dessiné dans l'axe des voies
+      const q = pat.line + '|' + (best >= 0 ? best : st.name);
+      if (!seenQuay.has(q)) {
+        seenQuay.add(q);
+        const nCars = CARS[pat.line] || 5;
+        const qlen = Math.max(60, nCars * (CAR.length + CAR.gap) + 10);
+        PLATFORMS.push({ line: pat.line, polygon: carPolygon(pat.shape, Math.max(qlen / 2, Math.min(pat.shape.length - qlen / 2, st.d)), qlen, 11) });
+      }
+    });
+  }
+}
+
+/* ---------- Tableau des départs ---------- */
+function departures(si, T) {
+  const D = DAYS[state.dayType];
+  const live = liveLines();
+  const rows = new Map(); // ligne|direction → liste d'heures
+  const add = (line, dest, secs, isLive) => {
+    const key = line + '|' + dest;
+    if (!rows.has(key)) rows.set(key, { line, dest, times: [] });
+    rows.get(key).times.push({ secs, live: isLive });
+  };
+  const stops = STOPS_OF[si];
+  const byPat = new Map();
+  for (const s of stops) if (s.i < s.pat.stops.length - 1) {
+    if (!byPat.has(s.pat)) byPat.set(s.pat, []);
+    byPat.get(s.pat).push(s.i);
+  }
+  // horaires théoriques (lignes sans temps réel)
+  for (let k = 0; k < D.start.length; k++) {
+    if (D.start[k] > T + 3600) break;
+    const pr = PROFILES[D.prof[k]], idx = byPat.get(pr.p);
+    if (!idx || live.has(pr.p.line) || state.hidden.has(pr.p.line)) continue;
+    for (const i of idx) {
+      const t = D.start[k] + pr.dep[i];
+      if (t >= T - 20 && t <= T + 3600) add(pr.p.line, pr.p.stops[pr.p.stops.length - 1].name, t, false);
+    }
+  }
+  // temps réel PRIM
+  if (live.size) {
+    const nowMs = Date.now(), nowSecs = parisNow().secs;
+    const namesByLine = {};
+    for (const s of stops) (namesByLine[s.pat.line] = namesByLine[s.pat.line] || new Set()).add(s.pat.stops[s.i].name);
+    for (const line of live) {
+      if (!namesByLine[line] || state.hidden.has(line)) continue;
+      for (const j of RT.data.lines[line] || []) {
+        const c = j.calls.find(c => namesByLine[line].has(c[0]) && c[1] >= nowMs - 20000);
+        if (c && j.dest && !namesByLine[line].has(j.dest)) add(line, j.dest, nowSecs + (c[1] - nowMs) / 1000, true);
+      }
+    }
+  }
+  const list = [...rows.values()];
+  list.forEach(r => { r.times.sort((a, b) => a.secs - b.secs); r.times = r.times.filter((x, i, arr) => !i || x.secs - arr[i - 1].secs > 45).slice(0, 2); });
+  list.sort((a, b) => ORDER.indexOf(a.line) - ORDER.indexOf(b.line) || a.dest.localeCompare(b.dest));
+  return list;
+}
+let boardKey = '';
+function renderStation() {
+  const box = document.getElementById('station');
+  if (state.station == null) { box.hidden = true; return; }
+  const s = STATIONS[state.station], T = state.simTime;
+  const list = departures(state.station, T);
+  const html = list.map(r => {
+    const rgb = lineColor[r.line];
+    const when = r.times.map(x => {
+      const m = Math.max(0, Math.round((x.secs - T) / 60));
+      return `<div class="when${x.live ? ' live' : ''}">${m === 0 ? 'à quai' : m + ' min'}<small>${fmtHM(x.secs)}${x.live ? ' · temps réel' : ''}</small></div>`;
+    }).join('');
+    return `<li><span class="badge" style="background:${lineHex[r.line]};color:${textOn(rgb)}">${LABEL(r.line)}</span>` +
+           `<span class="dest"><small>Direction</small>${r.dest}</span><span class="times">${when}</span></li>`;
+  }).join('');
+  if (html !== boardKey) { document.getElementById('s-board').innerHTML = html; boardKey = html; }
+  document.getElementById('s-name').textContent = s.n;
+  document.getElementById('s-empty').hidden = list.length > 0;
+  box.hidden = false;
+}
+document.getElementById('s-close').addEventListener('click', () => { state.station = null; renderStation(); });
+
+/* ---------- Carte de la ville (MapLibre + tuiles OpenFreeMap) ---------- */
+const NIGHT = {
+  version: 8,
+  glyphs: 'https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf',
+  sources: { omt: { type: 'vector', url: 'https://tiles.openfreemap.org/planet' } },
+  light: { anchor: 'viewport', color: '#dfe7ff', intensity: 0.32, position: [1.4, 205, 35] },
+  layers: [
+    { id: 'fond', type: 'background', paint: { 'background-color': '#0b1120' } },
+    { id: 'verdure', type: 'fill', source: 'omt', 'source-layer': 'landcover', filter: ['in', ['get', 'class'], ['literal', ['wood', 'grass', 'farmland']]],
+      paint: { 'fill-color': '#12291f', 'fill-opacity': 0.85 } },
+    { id: 'parcs', type: 'fill', source: 'omt', 'source-layer': 'park', paint: { 'fill-color': '#12291f' } },
+    { id: 'cimetieres', type: 'fill', source: 'omt', 'source-layer': 'landuse', filter: ['==', ['get', 'class'], 'cemetery'], paint: { 'fill-color': '#131f22' } },
+    { id: 'eau', type: 'fill', source: 'omt', 'source-layer': 'water', paint: { 'fill-color': '#10314a' } },
+    { id: 'canaux', type: 'line', source: 'omt', 'source-layer': 'waterway', paint: { 'line-color': '#10314a', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 17, 6] } },
+    { id: 'rues-fines', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 13.5,
+      filter: ['in', ['get', 'class'], ['literal', ['minor', 'service', 'pedestrian', 'path']]],
+      paint: { 'line-color': '#151d31', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 14, 0.6, 18, 9] } },
+    { id: 'rues', type: 'line', source: 'omt', 'source-layer': 'transportation',
+      filter: ['in', ['get', 'class'], ['literal', ['secondary', 'tertiary']]],
+      paint: { 'line-color': '#1a2338', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 11, 0.5, 18, 16] } },
+    { id: 'axes', type: 'line', source: 'omt', 'source-layer': 'transportation',
+      filter: ['in', ['get', 'class'], ['literal', ['motorway', 'trunk', 'primary']]],
+      paint: { 'line-color': '#212c45', 'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 10, 0.8, 18, 24] } },
+    { id: 'batiments', type: 'fill-extrusion', source: 'omt', 'source-layer': 'building', minzoom: 13,
+      paint: {
+        'fill-extrusion-color': ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 10], 0, '#182036', 25, '#1e2840', 60, '#28344f'],
+        'fill-extrusion-height': ['interpolate', ['linear'], ['zoom'], 13, 0, 14.5, ['coalesce', ['get', 'render_height'], 10]],
+        'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+        'fill-extrusion-opacity': 0.82
+      } },
+    { id: 'noms-rues', type: 'symbol', source: 'omt', 'source-layer': 'transportation_name', minzoom: 16,
+      layout: { 'symbol-placement': 'line', 'text-field': ['coalesce', ['get', 'name:fr'], ['get', 'name']], 'text-font': ['Noto Sans Regular'], 'text-size': 11 },
+      paint: { 'text-color': '#56627e', 'text-halo-color': '#0b1120', 'text-halo-width': 1.4 } },
+    { id: 'quartiers', type: 'symbol', source: 'omt', 'source-layer': 'place', minzoom: 11.5, maxzoom: 15.5,
+      filter: ['in', ['get', 'class'], ['literal', ['suburb', 'quarter', 'town', 'city']]],
+      layout: { 'text-field': ['coalesce', ['get', 'name:fr'], ['get', 'name']], 'text-font': ['Noto Sans Regular'], 'text-size': 11,
+                'text-transform': 'uppercase', 'text-letter-spacing': 0.12, 'text-max-width': 8 },
+      paint: { 'text-color': '#4b5672', 'text-halo-color': '#0b1120', 'text-halo-width': 1.2 } }
+  ]
+};
+
+/* ---------- Couches deck.gl ---------- */
+const { MapboxOverlay, PathLayer, SolidPolygonLayer, ScatterplotLayer, TextLayer, PolygonLayer, LightingEffect, AmbientLight, DirectionalLight } = deck;
+
+// fond de carte embarqué : n'est dessiné que si les tuiles de la ville ne se chargent pas (hors ligne)
+const baseLayers = () => state.tilesOk ? [] : [
+  new PolygonLayer({ id: 'park', data: BASEMAP.park, getPolygon: d => d, filled: true, stroked: false,
+    getFillColor: [22, 52, 38, 255] }),
+  new PolygonLayer({ id: 'water-poly', data: BASEMAP.water, getPolygon: d => d, filled: true, stroked: false,
+    getFillColor: [18, 55, 84, 255] }),
+  new PathLayer({ id: 'rivers', data: BASEMAP.rivers || [], getPath: d => d.p,
+    getWidth: d => d.w, widthUnits: 'meters', widthMinPixels: 1.5, capRounded: true, jointRounded: true,
+    getColor: [18, 55, 84, 255] }),
+  new PathLayer({ id: 'adm', data: BASEMAP.adm, getPath: d => d[1], widthUnits: 'pixels',
+    getWidth: d => d[0] === 'adm9' ? 0.6 : 0.8, getColor: d => d[0] === 'adm9' ? [120, 140, 180, 60] : [120, 140, 180, 90] }),
+];
+
+const visibleStations = () => STATIONS.map((s, i) => ({ ...s, i })).filter(s => s.l.some(l => !state.hidden.has(l)));
+const lineLayers = () => {
+  const close = state.zoom >= 14.6;
   return [
-    new PolygonLayer({ id: 'park', data: BASEMAP.park, getPolygon: d => d, filled: true, stroked: false,
-      getFillColor: [22, 52, 38, 255] }),
-    new PolygonLayer({ id: 'water-poly', data: BASEMAP.water, getPolygon: d => d, filled: true, stroked: false,
-      getFillColor: [18, 55, 84, 255] }),
-    new PathLayer({ id: 'rivers', data: BASEMAP.rivers || [], getPath: d => d.p,
-      getWidth: d => d.w, widthUnits: 'meters', widthMinPixels: 1.5, capRounded: true, jointRounded: true,
-      getColor: [18, 55, 84, 255] }),
-    new PathLayer({ id: 'adm', data: BASEMAP.adm, getPath: d => d[1], widthUnits: 'pixels',
-      getWidth: d => d[0] === 'adm9' ? 0.6 : 0.8, getColor: d => d[0] === 'adm9' ? [120, 140, 180, 60] : [120, 140, 180, 90] }),
+    new PathLayer({ id: 'lines-glow', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
+      getColor: r => [...lineColor[r.line], close ? 30 : 55], getWidth: close ? 14 : 9, widthUnits: 'pixels', jointRounded: true, capRounded: true,
+      updateTriggers: { data: [...state.hidden].join(), getColor: close, getWidth: close } }),
+    // voies : 3 px de loin, puis la largeur réelle d'une double voie (~7 m) de près
+    new PathLayer({ id: 'lines', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
+      getColor: r => lineColor[r.line], getWidth: 7, widthUnits: 'meters', widthMinPixels: 3, jointRounded: true, capRounded: true,
+      updateTriggers: { data: [...state.hidden].join() } }),
+    // quais en 3D, visibles de près
+    new SolidPolygonLayer({ id: 'quais', data: PLATFORMS.filter(q => !state.hidden.has(q.line)), visible: close,
+      getPolygon: q => q.polygon, extruded: true, getElevation: 1.1, getFillColor: [196, 205, 226, 235],
+      material: { ambient: 0.6, diffuse: 0.5 }, updateTriggers: { data: [...state.hidden].join() } }),
+    new ScatterplotLayer({ id: 'stations', data: visibleStations(), pickable: true, visible: !close,
+      getPosition: s => s.p, getRadius: s => s.l.length > 1 ? 55 : 38, radiusUnits: 'meters',
+      radiusMinPixels: 2.5, radiusMaxPixels: 9, filled: true, stroked: true,
+      getFillColor: s => s.i === state.station ? [255, 205, 0] : [240, 244, 252], getLineColor: [11, 17, 32], lineWidthMinPixels: 1.2,
+      updateTriggers: { data: [...state.hidden].join(), getFillColor: state.station } }),
+    // de près, la gare reste cliquable par une zone invisible autour de ses quais
+    new ScatterplotLayer({ id: 'stations-hit', data: visibleStations(), pickable: true, visible: close,
+      getPosition: s => s.p, getRadius: 70, radiusUnits: 'meters', getFillColor: [0, 0, 0, 0],
+      updateTriggers: { data: [...state.hidden].join() } }),
+    new TextLayer({ id: 'labels', data: visibleStations(),
+      visible: state.zoom > 13.6, getPosition: s => [s.p[0], s.p[1], close ? 12 : 0], getText: s => s.n, characterSet: 'auto',
+      fontFamily: 'Barlow, "Segoe UI", sans-serif', fontWeight: 600, getSize: close ? 14 : 12, sizeUnits: 'pixels',
+      getColor: [232, 238, 250], getPixelOffset: [0, -14], outlineWidth: 3, outlineColor: [11, 17, 32, 230],
+      fontSettings: { sdf: true }, billboard: true,
+      updateTriggers: { data: [...state.hidden].join(), getSize: close, getPosition: close } })
   ];
 };
 
-const lineLayers = () => [
-  new PathLayer({ id: 'lines-glow', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
-    getColor: r => [...lineColor[r.line], 55], getWidth: 9, widthUnits: 'pixels', jointRounded: true, capRounded: true,
-    updateTriggers: { data: [...state.hidden].join() } }),
-  new PathLayer({ id: 'lines', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
-    getColor: r => lineColor[r.line], getWidth: 3, widthUnits: 'pixels', jointRounded: true, capRounded: true,
-    updateTriggers: { data: [...state.hidden].join() } }),
-  new ScatterplotLayer({ id: 'stations', data: STATIONS.filter(s => s.l.some(l => !state.hidden.has(l))),
-    getPosition: s => s.p, getRadius: s => s.l.length > 1 ? 55 : 38, radiusUnits: 'meters',
-    radiusMinPixels: 2.5, radiusMaxPixels: 9, filled: true, stroked: true,
-    getFillColor: [240, 244, 252], getLineColor: [11, 17, 32], lineWidthMinPixels: 1.2,
-    updateTriggers: { data: [...state.hidden].join() } }),
-  new TextLayer({ id: 'labels', data: STATIONS.filter(s => s.l.some(l => !state.hidden.has(l))),
-    visible: state.zoom > 13.6, getPosition: s => s.p, getText: s => s.n, characterSet: 'auto',
-    fontFamily: 'Barlow, "Segoe UI", sans-serif', fontWeight: 500, getSize: 12, sizeUnits: 'pixels',
-    getColor: [214, 222, 240], getPixelOffset: [0, -14], outlineWidth: 3, outlineColor: [11, 17, 32, 230],
-    fontSettings: { sdf: true }, billboard: true,
-    updateTriggers: { data: [...state.hidden].join() } })
-];
-
 const lighting = new LightingEffect({
-  ambient: new AmbientLight({ color: [255, 255, 255], intensity: 0.9 }),
-  sun: new DirectionalLight({ color: [255, 250, 240], intensity: 0.9, direction: [-1, -2, -3] })
+  ambient: new AmbientLight({ color: [255, 255, 255], intensity: 0.95 }),
+  sun: new DirectionalLight({ color: [255, 248, 235], intensity: 1.1, direction: [-1, -2, -3] })
 });
 
-let trains = [];
-const deckgl = new DeckGL({
-  container: 'map',
-  initialViewState: location.hash === '#centre' ? { longitude: 2.347, latitude: 48.8585, zoom: 14.6, pitch: 60, bearing: -25, maxPitch: 75 } : { longitude: 2.3425, latitude: 48.8585, zoom: 12.1, pitch: 52, bearing: -18, maxPitch: 75 },
-  controller: { dragRotate: true, touchRotate: true },
+const startView = location.hash === '#centre'
+  ? { center: [2.347, 48.8585], zoom: 14.6, pitch: 60, bearing: -25 }
+  : { center: [2.3425, 48.8585], zoom: 12.1, pitch: 52, bearing: -18 };
+const map = new maplibregl.Map({
+  container: 'map', style: NIGHT, ...startView, maxPitch: 85, attributionControl: false, antialias: true
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
+state.zoom = startView.zoom;
+state.tilesOk = false;
+map.on('move', () => { state.zoom = map.getZoom(); });
+map.on('data', e => { if (e.sourceId === 'omt' && e.dataType === 'source' && e.tile) state.tilesOk = true; });
+// l'utilisateur reprend la main sur la caméra : on arrête de suivre la rame
+['dragstart', 'wheel', 'touchstart'].forEach(ev => map.on(ev, e => { if (e.originalEvent) setCam(null); }));
+
+const tipStyle = { background: '#111a2e', color: '#e6ebf5', fontFamily: 'Barlow, sans-serif', fontSize: '13px', borderRadius: '6px', padding: '6px 9px', border: '1px solid rgba(148,163,196,.25)' };
+const overlay = new MapboxOverlay({
+  interleaved: false,
   effects: [lighting],
-  parameters: { clearColor: [11/255, 17/255, 32/255, 1] },
-  onViewStateChange: ({ viewState }) => { state.zoom = viewState.zoom; },
   getTooltip: ({ object, layer }) => {
     if (!object || !layer) return null;
-    if (layer.id === 'trains') return { text: `Ligne ${LABEL(object.pat.line)} → ${object.pat.stops[object.pat.stops.length-1].name}`, style: tipStyle };
-    if (layer.id === 'stations') return { text: `${object.n}\nLignes ${object.l.map(LABEL).join(', ')}`, style: tipStyle };
+    if (layer.id === 'trains') return { text: `Ligne ${LABEL(object.t.pat.line)} → ${object.t.pat.stops[object.t.pat.stops.length-1].name}`, style: tipStyle };
+    if (layer.id === 'stations' || layer.id === 'stations-hit') return { text: `${object.n}\nLignes ${object.l.map(LABEL).join(', ')}\nCliquer pour les prochains départs`, style: tipStyle };
     return null;
   },
   onClick: ({ object, layer }) => {
-    if (layer && layer.id === 'trains' && object) { state.selected = object.id; renderInfo(); }
+    if (!layer || !object) return;
+    if (layer.id === 'trains') { state.selected = object.t.id; state.station = null; renderStation(); renderInfo(); }
+    else if (layer.id === 'stations' || layer.id === 'stations-hit') { state.station = object.i; state.selected = null; setCam(null); document.getElementById('info').hidden = true; boardKey = ''; renderStation(); }
   },
   layers: []
 });
-state.zoom = location.hash === '#centre' ? 14.6 : 12.1;
-const tipStyle = { background: '#111a2e', color: '#e6ebf5', fontFamily: 'Barlow, sans-serif', fontSize: '13px', borderRadius: '6px', padding: '6px 9px', border: '1px solid rgba(148,163,196,.25)' };
+map.addControl(overlay);
 
+/* ---------- Caméra : suivre une rame, vue cabine ---------- */
+function setCam(mode) {
+  state.cam = mode;
+  camBearing = null;
+  document.getElementById('b-follow').setAttribute('aria-pressed', String(mode === 'follow'));
+  document.getElementById('b-cabin').setAttribute('aria-pressed', String(mode === 'cabin'));
+}
+document.getElementById('b-follow').addEventListener('click', () => setCam(state.cam === 'follow' ? null : 'follow'));
+document.getElementById('b-cabin').addEventListener('click', () => setCam(state.cam === 'cabin' ? null : 'cabin'));
+let camBearing = null;
+function driveCamera(sel) {
+  if (!state.cam || !sel) return;
+  const sh = sel.pat.shape;
+  const a = locate(sh, sel.d), b = locate(sh, sel.d + 40);
+  const k = Math.cos(a[1] * Math.PI / 180);
+  const target = Math.atan2((b[0] - a[0]) * k, b[1] - a[1]) * 180 / Math.PI;
+  // lissage du cap pour éviter les à-coups dans les courbes
+  if (camBearing == null) camBearing = target;
+  const diff = ((target - camBearing + 540) % 360) - 180;
+  camBearing += diff * 0.15;
+  if (state.cam === 'follow') {
+    map.jumpTo({ center: a, zoom: Math.max(15.8, Math.min(state.zoom, 17.5)), pitch: 62, bearing: camBearing });
+  } else {
+    // en cabine : la caméra est posée juste derrière la tête de la rame, regard dans l'axe de la voie
+    const n = CARS[sel.pat.line] || 5;
+    const front = locate(sh, sel.d + (n * (CAR.length + CAR.gap)) / 2 + 60);
+    map.jumpTo({ center: front, zoom: 18.4, pitch: 80, bearing: camBearing });
+  }
+}
+
+let trains = [];
 function render() {
   trains = activeTrains(state.simTime);
   const sel = trains.find(t => t.id === state.selected);
-  deckgl.setProps({ layers: [
+  const sc = trainScale();
+  const cars = [];
+  for (const t of trains) cars.push(...trainCars(t, sc));
+  const selCars = sel ? cars.filter(c => c.t === sel) : [];
+  if (!sel) { if (state.cam) setCam(null); camBearing = null; }
+  driveCamera(sel);
+  overlay.setProps({ layers: [
     ...baseLayers(), ...lineLayers(),
-    new SolidPolygonLayer({ id: 'trains', data: trains, getPolygon: t => t.polygon, extruded: true,
-      getElevation: t => t.height, getFillColor: t => t.color, pickable: true,
-      material: { ambient: 0.75, diffuse: 0.55, shininess: 8, specularColor: [40, 40, 40] } }),
-    new SolidPolygonLayer({ id: 'selected', data: sel ? [sel] : [], getPolygon: t => t.polygon, extruded: true,
-      getElevation: t => t.height * 1.6, getFillColor: [255, 205, 0, 120], wireframe: true, getLineColor: [255, 205, 0] })
+    new SolidPolygonLayer({ id: 'trains', data: cars, getPolygon: c => c.polygon, extruded: true,
+      getElevation: c => c.height, getFillColor: c => c.head ? c.t.color.map(v => Math.min(255, v + 35)) : c.t.color, pickable: true,
+      material: { ambient: 0.7, diffuse: 0.6, shininess: 24, specularColor: [70, 70, 70] } }),
+    new SolidPolygonLayer({ id: 'selected', data: selCars, getPolygon: c => c.polygon, extruded: true,
+      getElevation: c => c.height * 1.35, getFillColor: [255, 205, 0, 90], wireframe: true, getLineColor: [255, 205, 0] })
   ]});
   document.getElementById('ntrains').textContent = trains.length;
   document.getElementById('time').textContent = fmt(state.simTime);
@@ -458,7 +711,7 @@ function renderInfo(sel) {
   document.getElementById('i-prog').textContent = `${Math.round(100 * sel.e / pr.duration)} % · ${stops.length} gares`;
   box.hidden = false;
 }
-document.getElementById('close').addEventListener('click', () => { state.selected = null; document.getElementById('info').hidden = true; });
+document.getElementById('close').addEventListener('click', () => { state.selected = null; setCam(null); document.getElementById('info').hidden = true; });
 
 /* ---------- Contrôles ---------- */
 const speedBtns = [...document.querySelectorAll('[data-speed]')];
@@ -508,7 +761,7 @@ function updateNotes() {
     ? "Temps réel PRIM (Île-de-France Mobilités) : chaque rame est placée d'après son heure de passage annoncée à la prochaine gare. Les lignes sans données temps réel restent sur l'horaire théorique."
     : NOTE_THEO;
   document.getElementById('credits-src').innerHTML = RT.on
-    ? "Données : Île-de-France Mobilités (open data et PRIM) · © contributeurs OpenStreetMap<br>Temps réel PRIM, actualisé en continu"
+    ? "Données : Île-de-France Mobilités (open data et PRIM) · Carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap<br>Temps réel PRIM, actualisé en continu"
     : CREDITS_THEO;
 }
 liveBtn.addEventListener('click', () => setLive(!RT.on));
@@ -563,8 +816,10 @@ function frame(now) {
     if (state.simTime > 27 * 3600) state.simTime = 5 * 3600; // la nuit passe : retour au premier métro
   }
   render();
+  if (state.station != null && now - lastBoard > 1000) { lastBoard = now; renderStation(); }
   requestAnimationFrame(frame);
 }
+let lastBoard = 0;
 document.getElementById('loading').remove();
 requestAnimationFrame(frame);
 </script>

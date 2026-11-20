@@ -12,12 +12,15 @@ théoriques officiels d'Île-de-France Mobilités, ou en temps réel grâce à l
 ## Fonctionnalités
 
 - **16 lignes, 321 gares** : tracés et gares issus de l'open data Île-de-France Mobilités.
+- **Paris en 3D** : bâtiments extrudés selon leur hauteur réelle, rues, Seine, canaux et parcs (tuiles vectorielles OpenStreetMap, servies par OpenFreeMap), dans une ambiance de nuit.
+- **Rames en 3D composées de voitures** : 6 voitures sur les lignes 1 et 4, 8 sur la 14, 3 sur les navettes 3bis et 7bis, 5 ailleurs. Elles suivent les courbes des voies, s'arrêtent à quai et accélèrent entre les gares.
+- **Quais en 3D** dans chaque gare, visibles en zoomant.
+- **Tableau des prochains départs** : un clic sur une gare affiche, ligne par ligne et par direction, les deux prochains passages (temps réel PRIM quand il est disponible, sinon horaires théoriques).
+- **Suivre une rame** ou passer en **vue cabine** depuis sa fiche : la caméra accompagne la rame le long de sa ligne.
 - **Horaires officiels** : environ 11 600 trajets un jour de semaine, 9 900 le samedi et 8 100 le dimanche, extraits du GTFS IDFM.
 - **Temps réel** : avec le serveur local, chaque rame est placée d'après son heure de passage annoncée par PRIM à la prochaine gare.
-- **Rames en 3D** aux couleurs officielles, qui suivent les courbes des voies, s'arrêtent à quai et accélèrent entre les gares.
 - **Horloge** réglable (×1 à ×300), choix du type de jour (semaine, samedi, dimanche), filtre par ligne.
-- **Fiche rame** au clic : direction, prochaine gare, heure d'arrivée prévue.
-- **Fond de carte embarqué** (Seine, Marne, canaux, bois, limites communales) : la page fonctionne sans service de tuiles.
+- **Fond de carte de secours embarqué** (Seine, Marne, canaux, bois, limites communales) : sans accès aux tuiles, la page fonctionne toujours.
 
 ## Lancer la carte
 
@@ -66,7 +69,8 @@ python scripts/05_assemble.py         # produit index.html (page autonome)
    courbe d'accélération et de freinage.
 4. **Temps réel** : pour chaque rame annoncée par PRIM, la carte retrouve le motif correspondant (ligne,
    terminus, gares annoncées) et en déduit le temps écoulé depuis le départ. Les doublons du flux sont fusionnés.
-5. **Rendu** : [deck.gl](https://deck.gl/) en WebGL, rames extrudées en 3D, vue inclinable et orientable.
+5. **Rendu** : [MapLibre GL JS](https://maplibre.org/) pour la ville (bâtiments en 3D à partir de leur hauteur OpenStreetMap), et [deck.gl](https://deck.gl/) par-dessus pour les voies, les quais et les rames, découpées en voitures le long du tracé.
+6. **Gares et horaires** : les noms de gares diffèrent parfois entre le référentiel des gares et le GTFS (« Alma - Marceau » / « Alma-Marceau ») ; chaque arrêt des horaires est donc rattaché à la gare la plus proche de la même ligne, ce qui alimente le tableau des départs.
 
 ## Limites
 
