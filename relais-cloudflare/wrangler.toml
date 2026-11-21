@@ -1,0 +1,5 @@
+# Déploiement en ligne de commande (optionnel) : npx wrangler deploy
+# puis : npx wrangler secret put PRIM_API_KEY
+name = "mini-paris-3d-temps-reel"
+main = "worker.js"
+compatibility_date = "2026-11-01"

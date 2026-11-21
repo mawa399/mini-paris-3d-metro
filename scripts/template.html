@@ -767,18 +767,24 @@ function updateNotes() {
 }
 liveBtn.addEventListener('click', () => setLive(!RT.on));
 let rtFirst = true;
+// Temps réel : serveur local (serveur.py) sur le PC, relais Cloudflare pour la page en ligne.
+const RELAIS_URL = '';   // ex. https://mini-paris-3d-temps-reel.<compte>.workers.dev
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const RT_URL = LOCAL ? '/api/temps-reel' : (RELAIS_URL ? RELAIS_URL.replace(/\/$/, '') + '/api/temps-reel' : null);
 async function pollRealtime() {
+  if (!RT_URL) return;
   try {
-    const r = await fetch('/api/temps-reel', { cache: 'no-store' });
+    const r = await fetch(RT_URL, { cache: 'no-store' });
     if (!r.ok) throw new Error(r.status);
     const j = await r.json();
     if (!j || !j.lines) throw new Error('format');
     RT.data = j; RT.available = true;
     document.getElementById('livebar').hidden = false;
     if (rtFirst && Object.keys(j.lines).length) { rtFirst = false; setLive(true); }
-    setTimeout(pollRealtime, 15000);
+    // le relais en ligne remplit les 16 lignes par paquets de 4 : on rappelle vite au démarrage
+    setTimeout(pollRealtime, Object.keys(j.lines).length < 16 ? 4000 : 15000);
   } catch (e) {
-    // pas de serveur local (page publiée) : on reste sur les horaires théoriques
+    // ni serveur local ni relais joignable : on reste sur les horaires théoriques
     if (RT.available) setTimeout(pollRealtime, 30000);
   }
 }
