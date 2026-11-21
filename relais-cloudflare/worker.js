@@ -3,7 +3,10 @@
  *
  * Joue en ligne le rôle de serveur.py : interroge l'API PRIM « estimated-timetable »
  * ligne par ligne et renvoie sur /api/temps-reel le même JSON simplifié
- * { updated, lines: { "1": [{id, dest, calls:[[gare, heure_ms], …]}], … }, errors }.
+ * { updated, lines: { "1": [{id, dest, calls:[[gare, heure_ms], …]}], … }, errors, trafic }.
+ *
+ * « trafic » : les perturbations en cours sur les lignes de métro (API PRIM « disruptions_bulk »),
+ * relues toutes les 2 minutes : { updated, lines: { "13": [{sev, cause, title, msg, stops, whole, end}] } }.
  *
  * La clé PRIM n'est jamais dans ce code : elle est stockée dans le secret PRIM_API_KEY
  * du Worker (Settings › Variables and Secrets).
@@ -29,6 +32,69 @@ const TTL = 60_000;          // durée de vie d'une ligne en mémoire
 const MAJ_PAR_REQUETE = 4;   // lignes rafraîchies au plus par requête
 
 const memoire = new Map();   // code -> { t, journeys, error }
+const TRAFIC_URL = 'https://prim.iledefrance-mobilites.fr/marketplace/disruptions_bulk/disruptions/v2';
+const TRAFIC_TTL = 120_000;
+let trafic = { t: 0, data: null, error: null };
+
+// heure de Paris au format des périodes IDFM : 20261121T143000
+function heureParis(ms) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    .formatToParts(new Date(ms)).map(x => [x.type, x.value]));
+  return `${p.year}${p.month}${p.day}T${p.hour}${p.minute}${p.second}`;
+}
+const ENTITES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+function texte(html) {
+  return (html || '')
+    .replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '')
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+    .replace(/&([a-z]+);/gi, (m, n) => ENTITES[n.toLowerCase()] ?? m)
+    .replace(/\n{3,}/g, '\n\n').trim();
+}
+// ne garde que les perturbations du métro actives maintenant
+function simplifierTrafic(bulk, now) {
+  const maintenant = heureParis(now);
+  const parId = new Map(bulk.disruptions.map(d => [d.id, d]));
+  const lines = {};
+  for (const l of bulk.lines || []) {
+    if (l.mode !== 'Metro') continue;
+    const code = (l.id || '').split(':').pop();
+    const ligne = LINES[code];
+    if (!ligne) continue;
+    const parDisruption = new Map();
+    for (const o of l.impactedObjects || []) {
+      for (const id of o.disruptionIds || []) {
+        if (!parDisruption.has(id)) parDisruption.set(id, { stops: new Set(), whole: false });
+        const x = parDisruption.get(id);
+        if (o.type === 'line') x.whole = true; else if (o.name) x.stops.add(o.name);
+      }
+    }
+    const out = [];
+    for (const [id, x] of parDisruption) {
+      const d = parId.get(id);
+      if (!d) continue;
+      const periode = (d.applicationPeriods || []).find(p => p.begin <= maintenant && maintenant <= p.end);
+      if (!periode) continue;
+      out.push({ sev: d.severity, cause: d.cause, title: d.title, msg: texte(d.message), short: d.shortMessage || '',
+        stops: [...x.stops], whole: x.whole, end: periode.end });
+    }
+    const rang = { BLOQUANTE: 0, PERTURBEE: 1, INFORMATION: 2 };
+    if (out.length) lines[ligne] = out.sort((a, b) => (rang[a.sev] ?? 3) - (rang[b.sev] ?? 3));
+  }
+  return { updated: now, lines };
+}
+async function rafraichirTrafic(key, now) {
+  if (now - trafic.t < TRAFIC_TTL) return;
+  trafic.t = now;
+  try {
+    const r = await fetch(TRAFIC_URL, { headers: { apikey: key, Accept: 'application/json' } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    trafic = { t: now, data: simplifierTrafic(await r.json(), now), error: null };
+  } catch (e) {
+    trafic = { t: now, data: trafic.data, error: String(e.message || e).slice(0, 200) };
+  }
+}
 
 function quayName(ref) {
   const parts = (ref || '').replace(/^:+|:+$/g, '').split(':');
@@ -92,6 +158,7 @@ export default {
       .slice(0, MAJ_PAR_REQUETE)
       .map(([code]) => code);
 
+    const majTrafic = rafraichirTrafic(env.PRIM_API_KEY, now);
     await Promise.all(perimees.map(async code => {
       const ancien = memoire.get(code);
       try {
@@ -101,7 +168,9 @@ export default {
       }
     }));
 
-    const etat = { updated: 0, lines: {}, errors: {} };
+    await majTrafic;
+    const etat = { updated: 0, lines: {}, errors: {}, trafic: trafic.data };
+    if (trafic.error) etat.errors.trafic = trafic.error;
     for (const [code, ligne] of Object.entries(LINES)) {
       const m = memoire.get(code);
       if (!m) continue;

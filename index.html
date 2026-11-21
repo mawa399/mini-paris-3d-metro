@@ -137,13 +137,74 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
   margin-right: 44px;
   font-size: 10.5px; color: var(--muted); text-align: right; line-height: 1.4; pointer-events: none;
 }
+/* Recherche */
+.search { position: relative; }
+#q { width: 100%; box-sizing: border-box; font: 500 14px var(--body); color: var(--ink); background: rgba(255,255,255,.06);
+  border: 1px solid var(--rule); border-radius: 7px; padding: 8px 10px 8px 32px; outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238d99b3' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='m11 11 4 4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: 10px 50%; }
+#q:focus { border-color: var(--signal); }
+#q::placeholder { color: var(--muted); }
+#q-res { position: absolute; z-index: 8; left: 0; right: 0; top: calc(100% + 4px); margin: 0; padding: 4px; list-style: none;
+  background: var(--panel-solid); border: 1px solid var(--rule); border-radius: 8px; max-height: 300px; overflow-y: auto; }
+#q-res li { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+#q-res li[aria-selected="true"], #q-res li:hover { background: rgba(255,205,0,.14); }
+#q-res .mini { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 700 11px var(--display); flex: 0 0 auto; }
+#q-res .lines { display: flex; gap: 3px; margin-left: auto; }
+#q-res .lines .mini { width: 17px; height: 17px; font-size: 10px; }
+#q-res .empty { color: var(--muted); cursor: default; }
+
+/* Info trafic */
+.sev-BLOQUANTE { --sev: #ff5a4e; } .sev-PERTURBEE { --sev: #ff9f1a; } .sev-INFORMATION { --sev: #6aa7ff; } .sev-OK { --sev: #3ddc84; }
+.trafic-sum { display: flex; align-items: center; gap: 8px; font: 600 13px var(--body); color: var(--ink); background: transparent;
+  border: 1px solid var(--rule); border-radius: 6px; padding: 6px 10px; cursor: pointer; text-align: left; }
+.trafic-sum:hover { border-color: var(--muted); }
+.trafic-sum .dot, .tline .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--sev); flex: 0 0 auto; }
+.chip { position: relative; }
+.chip[data-sev]::after { content: ''; position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--sev); border: 2px solid var(--night); }
+#trafic {
+  top: calc(12px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  width: min(340px, calc(100vw - 24px)); max-height: calc(100vh - 120px); overflow-y: auto;
+  padding: 14px 16px; display: grid; gap: 10px; align-content: start;
+}
+#trafic h2 { margin: 0 28px 0 0; font: 600 21px/1.1 var(--display); }
+#trafic h2 small { display: block; color: var(--muted); font: 500 12px var(--body); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+#t-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.tline { border-top: 1px solid var(--rule); padding: 8px 0; }
+.tline > button { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.tline > button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; border-radius: 4px; }
+.tline .badge, .alert .badge { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--display); flex: 0 0 auto; }
+.tline .state { font-size: 13.5px; } .tline .state small { display: block; color: var(--muted); font-size: 11.5px; }
+.tline .dot { margin-left: auto; }
+.alert { border-left: 3px solid var(--sev); background: rgba(255,255,255,.04); border-radius: 0 6px 6px 0; padding: 8px 10px; font-size: 13px; line-height: 1.4; display: grid; gap: 4px; }
+.alert b { font-weight: 600; }
+.alert p { margin: 0; color: #c9d2e6; white-space: pre-line; }
+.alert small { color: var(--muted); font-size: 11.5px; }
+#close-t { position: absolute; top: 8px; right: 8px; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; padding: 4px 8px; }
+.share { font: 600 12.5px var(--body); color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 5px 9px; cursor: pointer; justify-self: start; }
+.share:hover { border-color: var(--muted); }
+
+/* Fiche rame : arrêts */
+#i-stops { margin: 0; padding: 0; list-style: none; display: grid; max-height: 230px; overflow-y: auto; border-top: 1px solid var(--rule); padding-top: 6px; }
+#i-stops li { display: grid; grid-template-columns: 46px 14px 1fr; align-items: center; gap: 6px; font-size: 13px; padding: 3px 0; position: relative; }
+#i-stops time { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+#i-stops li.est time { font-weight: 400; color: var(--muted); font-style: italic; }
+#i-stops .pt { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--line, #fff); background: var(--panel-solid); justify-self: center; box-sizing: border-box; }
+#i-stops li.closed span:last-child { text-decoration: line-through; color: var(--muted); }
+#i-src { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.4; }
+.legend { display: flex; gap: 12px; font-size: 11.5px; color: var(--muted); align-items: center; }
+.legend i { display: inline-block; width: 14px; height: 7px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+#credits a { pointer-events: auto; color: var(--ink); }
+
 #loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--display); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
 
 @media (max-width: 640px) {
   #control { gap: 8px; padding: 10px 12px; }
   #time { font-size: 36px; }
   .note { display: none; }
-  #info { top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); }
+  #info, #station, #trafic { top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); max-height: 52vh; overflow-y: auto; z-index: 7; }
+  #i-stops { max-height: 140px; }
   #credits { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); max-width: 55vw; }
 }
 @media (prefers-reduced-motion: reduce) { .chip { transition: none; } }
@@ -154,6 +215,12 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 
 <section id="control" class="panel" aria-label="Contrôles de la simulation">
   <div class="brand"><h1>Mini Paris <span>3D</span></h1><small>Métro · 16 lignes</small></div>
+  <div class="search" role="search">
+    <label for="q" class="sr-only" style="position:absolute;left:-9999px">Rechercher une gare ou une ligne</label>
+    <input id="q" type="search" placeholder="Rechercher une gare, une ligne…" autocomplete="off" spellcheck="false"
+      role="combobox" aria-expanded="false" aria-controls="q-res" aria-autocomplete="list">
+    <ul id="q-res" role="listbox" hidden></ul>
+  </div>
   <div class="clock"><div id="time">--:--:--</div><div id="day"></div></div>
   <div class="stats"><span><b id="ntrains">0</b>rames en ligne</span><span><b id="nstations">0</b>gares</span></div>
   <div class="controls" role="group" aria-label="Vitesse">
@@ -173,6 +240,8 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
     <button id="live" type="button" aria-pressed="false"><span class="dot" aria-hidden="true"></span>Temps réel</button>
     <span id="livestatus"></span>
   </div>
+  <div class="legend" id="legend" hidden><span><i style="background:#e6ebf5"></i>Annoncée par PRIM</span><span><i style="background:rgba(230,235,245,.35)"></i>Estimée d'après l'horaire</span></div>
+  <button id="trafic-btn" class="trafic-sum sev-OK" type="button" hidden><span class="dot" aria-hidden="true"></span><span id="trafic-txt"></span></button>
   <p class="note" id="note">Horaires théoriques officiels (GTFS Île-de-France Mobilités, semaine du 20 octobre 2026). Les rames sont placées entre deux gares par interpolation : retards et incidents ne sont pas pris en compte.</p>
 </section>
 
@@ -183,11 +252,12 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
   <header><div class="badge" id="i-badge"></div><h2><small>Direction</small><span id="i-dir"></span></h2></header>
   <dl>
     <dt>État</dt><dd id="i-state"></dd>
-    <dt>Prochaine gare</dt><dd id="i-next"></dd>
-    <dt>Arrivée prévue</dt><dd id="i-eta"></dd>
     <dt>Départ terminus</dt><dd id="i-dep"></dd>
     <dt>Parcours</dt><dd id="i-prog"></dd>
   </dl>
+  <div id="i-alerts"></div>
+  <ol id="i-stops" aria-label="Prochains arrêts"></ol>
+  <p id="i-src"></p>
   <div class="cam" role="group" aria-label="Caméra">
     <button type="button" id="b-follow" aria-pressed="false">Suivre</button>
     <button type="button" id="b-cabin" aria-pressed="false">Vue cabine</button>
@@ -197,11 +267,20 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 <aside id="station" class="panel" hidden aria-live="polite">
   <button id="s-close" type="button" aria-label="Fermer">×</button>
   <h2><small>Prochains départs</small><span id="s-name"></span></h2>
+  <div id="s-alerts"></div>
   <ul id="s-board"></ul>
   <p id="s-empty" hidden>Aucun départ dans l'heure.</p>
+  <button class="share" type="button" data-share>Copier le lien de cette gare</button>
 </aside>
 
-<div id="credits"><span id="credits-src">Données : Île-de-France Mobilités (open data) · Carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap<br>Horaires théoriques GTFS, sans le temps réel</span></div>
+<aside id="trafic" class="panel" hidden aria-live="polite">
+  <button id="close-t" type="button" aria-label="Fermer">×</button>
+  <h2><small id="t-kicker">Info trafic</small><span id="t-title">État des lignes</span></h2>
+  <div id="t-body"></div>
+  <button class="share" type="button" data-share hidden>Copier le lien de cette ligne</button>
+</aside>
+
+<div id="credits"><a href="comment-ca-marche.html">Comment ça marche ?</a> · <span id="credits-src">Données : Île-de-France Mobilités (open data) · Carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap<br>Horaires théoriques GTFS, sans le temps réel</span></div>
 
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -273,6 +352,7 @@ const state = {
   hidden: new Set(), selected: null, zoom: 12, station: null, cam: null
 };
 let dayLabel = initial.label;
+const chipEls = {};   // pastilles des lignes (bandeau du bas)
 
 // position d'une rame dans un profil horaire, e = secondes écoulées depuis le départ du terminus
 function positionIn(pr, e) {
@@ -333,7 +413,7 @@ function realtimeTrains(line) {
     if (!pos) continue;
     const [x, y] = locate(pat.shape, pos.d);
     out.push({
-      id: 'rt-' + j.id, live: true, eta: future[0], next: pos.next, atStop: pos.atStop, e, pr, pat,
+      id: 'rt-' + j.id, live: true, eta: future[0], calls: future, next: pos.next, atStop: pos.atStop, e, pr, pat,
       x, y, ncalls: j.calls.length, dest: pat.stops[pat.stops.length - 1].name,
       d: pos.d, color: lineColor[line]
     });
@@ -444,6 +524,53 @@ const PLATFORMS = [];
   }
 }
 
+/* ---------- Noms : rapprochement des gares (GTFS, PRIM, info trafic) ---------- */
+const norm = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const slug = t => norm(t).replace(/ /g, '-');
+const STATION_KEY = new Map();   // "ligne|nom normalisé" -> index de gare
+STATIONS.forEach((s, si) => s.l.forEach(l => STATION_KEY.set(l + '|' + norm(s.n), si)));
+STOPS_OF.forEach((list, si) => list.forEach(({ pat, i }) => STATION_KEY.set(pat.line + '|' + norm(pat.stops[i].name), si)));
+const STATION_BY_SLUG = new Map(STATIONS.map((s, si) => [slug(s.n), si]));
+
+/* ---------- Info trafic (perturbations PRIM, servies par le relais) ---------- */
+const SEV_LABEL = { BLOQUANTE: 'Interrompu', PERTURBEE: 'Perturbé', INFORMATION: 'Information' };
+const traficLines = () => (RT.data && RT.data.trafic && RT.data.trafic.lines) || {};
+const lineSev = l => { const ds = traficLines()[l]; return ds && ds.length ? ds[0].sev : null; };
+// gares touchées par une perturbation localisée (arrêt non desservi, etc.)
+function stationAlerts(si, onlyLine) {
+  const out = [];
+  for (const [l, ds] of Object.entries(traficLines())) {
+    if (onlyLine && l !== onlyLine) continue;
+    for (const d of ds) if (!d.whole && d.stops.some(n => STATION_KEY.get(l + '|' + norm(n)) === si)) out.push({ line: l, d });
+  }
+  return out;
+}
+function alertedStations() {
+  const m = new Map(); // si -> gravité la plus forte
+  const rank = { BLOQUANTE: 0, PERTURBEE: 1, INFORMATION: 2 };
+  for (const [l, ds] of Object.entries(traficLines())) {
+    if (state.hidden.has(l)) continue;
+    for (const d of ds) if (!d.whole) for (const n of d.stops) {
+      const si = STATION_KEY.get(l + '|' + norm(n));
+      if (si == null) continue;
+      if (!m.has(si) || rank[d.sev] < rank[m.get(si)]) m.set(si, d.sev);
+    }
+  }
+  return [...m].map(([si, sev]) => ({ si, sev, p: STATIONS[si].p }));
+}
+const SEV_RGB = { BLOQUANTE: [255, 90, 78], PERTURBEE: [255, 159, 26], INFORMATION: [106, 167, 255] };
+// fin de période IDFM (« 20261220T043000 ») : une fin avant 5 h est la fin de service de la veille
+const finLe = e => {
+  if (!e) return '';
+  const d = new Date(Date.UTC(+e.slice(0, 4), +e.slice(4, 6) - 1, +e.slice(6, 8))), h = +e.slice(9, 11);
+  if (h < 5) { d.setUTCDate(d.getUTCDate() - 1); return `jusqu'au ${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}, fin de service`; }
+  return `jusqu'au ${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)} à ${e.slice(9, 11)}:${e.slice(11, 13)}`;
+};
+const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const badgeHTML = l => `<span class="badge" style="background:${lineHex[l]};color:${textOn(lineColor[l])}">${LABEL(l)}${l.endsWith('b') ? '<sup style="font-size:8px">bis</sup>' : ''}</span>`;
+const alertHTML = (l, d, withLine) => `<div class="alert sev-${d.sev}">${withLine ? `<b>Ligne ${LABEL(l)}${l.endsWith('b') ? ' bis' : ''} · ${esc(d.short || SEV_LABEL[d.sev])}</b>` : `<b>${esc(d.title)}</b>`}` +
+  `${withLine ? `<small>${esc(d.title)}</small>` : ''}<p>${esc(d.msg)}</p><small>${esc(finLe(d.end))}</small></div>`;
+
 /* ---------- Tableau des départs ---------- */
 function departures(si, T) {
   const D = DAYS[state.dayType];
@@ -505,10 +632,13 @@ function renderStation() {
   }).join('');
   if (html !== boardKey) { document.getElementById('s-board').innerHTML = html; boardKey = html; }
   document.getElementById('s-name').textContent = s.n;
+  const al = stationAlerts(state.station).map(a => alertHTML(a.line, a.d, true)).join('');
+  const sa = document.getElementById('s-alerts');
+  if (sa.dataset.k !== al) { sa.innerHTML = al; sa.dataset.k = al; }
   document.getElementById('s-empty').hidden = list.length > 0;
   box.hidden = false;
 }
-document.getElementById('s-close').addEventListener('click', () => { state.station = null; renderStation(); });
+document.getElementById('s-close').addEventListener('click', () => { state.station = null; renderStation(); syncURL(); });
 
 /* ---------- Carte de la ville (MapLibre + tuiles OpenFreeMap) ---------- */
 const NIGHT = {
@@ -570,7 +700,13 @@ const baseLayers = () => state.tilesOk ? [] : [
 const visibleStations = () => STATIONS.map((s, i) => ({ ...s, i })).filter(s => s.l.some(l => !state.hidden.has(l)));
 const lineLayers = () => {
   const close = state.zoom >= 14.6;
+  const tk = RT.data && RT.data.trafic ? RT.data.trafic.updated : 0;
+  const wholeAlert = NETWORK.filter(r => !state.hidden.has(r.line) && (traficLines()[r.line] || []).some(d => d.whole && d.sev !== 'INFORMATION'));
   return [
+    // halo orange / rouge sous une ligne entièrement perturbée
+    new PathLayer({ id: 'lines-alert', data: wholeAlert, getPath: r => r.path,
+      getColor: r => [...SEV_RGB[lineSev(r.line)] || SEV_RGB.PERTURBEE, 120], getWidth: close ? 22 : 15, widthUnits: 'pixels',
+      jointRounded: true, capRounded: true, updateTriggers: { getColor: tk, getWidth: close } }),
     new PathLayer({ id: 'lines-glow', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
       getColor: r => [...lineColor[r.line], close ? 30 : 55], getWidth: close ? 14 : 9, widthUnits: 'pixels', jointRounded: true, capRounded: true,
       updateTriggers: { data: [...state.hidden].join(), getColor: close, getWidth: close } }),
@@ -592,6 +728,12 @@ const lineLayers = () => {
     new ScatterplotLayer({ id: 'stations-hit', data: visibleStations(), pickable: true, visible: close,
       getPosition: s => s.p, getRadius: 70, radiusUnits: 'meters', getFillColor: [0, 0, 0, 0],
       updateTriggers: { data: [...state.hidden].join() } }),
+    // gares touchées par une perturbation (arrêt non desservi…) : anneau rouge ou orange
+    new ScatterplotLayer({ id: 'alerts', data: alertedStations(), pickable: true,
+      getPosition: a => [a.p[0], a.p[1], close ? 3 : 0], getRadius: close ? 40 : 110, radiusUnits: 'meters', radiusMinPixels: 8, radiusMaxPixels: 30,
+      filled: true, getFillColor: a => [...SEV_RGB[a.sev], 40], stroked: true, getLineColor: a => [...SEV_RGB[a.sev], 255],
+      lineWidthUnits: 'pixels', getLineWidth: 2.5, billboard: false,
+      updateTriggers: { getRadius: close, getPosition: close } }),
     new TextLayer({ id: 'labels', data: visibleStations(),
       visible: state.zoom > 13.6, getPosition: s => [s.p[0], s.p[1], close ? 12 : 0], getText: s => s.n, characterSet: 'auto',
       fontFamily: 'Barlow, "Segoe UI", sans-serif', fontWeight: 600, getSize: close ? 14 : 12, sizeUnits: 'pixels',
@@ -628,12 +770,14 @@ const overlay = new MapboxOverlay({
     if (!object || !layer) return null;
     if (layer.id === 'trains') return { text: `Ligne ${LABEL(object.t.pat.line)} → ${object.t.pat.stops[object.t.pat.stops.length-1].name}`, style: tipStyle };
     if (layer.id === 'stations' || layer.id === 'stations-hit') return { text: `${object.n}\nLignes ${object.l.map(LABEL).join(', ')}\nCliquer pour les prochains départs`, style: tipStyle };
+    if (layer.id === 'alerts') { const a = stationAlerts(object.si); return a.length ? { text: `${STATIONS[object.si].n}\n` + a.map(x => `Ligne ${LABEL(x.line)} : ${x.d.short || SEV_LABEL[x.d.sev]}`).join('\n'), style: tipStyle } : null; }
     return null;
   },
   onClick: ({ object, layer }) => {
     if (!layer || !object) return;
-    if (layer.id === 'trains') { state.selected = object.t.id; state.station = null; renderStation(); renderInfo(); }
-    else if (layer.id === 'stations' || layer.id === 'stations-hit') { state.station = object.i; state.selected = null; setCam(null); document.getElementById('info').hidden = true; boardKey = ''; renderStation(); }
+    if (layer.id === 'trains') { openTrain(object.t.id); }
+    else if (layer.id === 'stations' || layer.id === 'stations-hit') openStation(object.i);
+    else if (layer.id === 'alerts') openStation(object.si);
   },
   layers: []
 });
@@ -669,6 +813,12 @@ function driveCamera(sel) {
   }
 }
 
+// rame annoncée par PRIM : couleur pleine ; rame estimée d'après l'horaire (quand le temps réel est actif) : pâle et translucide
+function trainColor(c) {
+  const base = c.t.color.map(v => Math.min(255, Math.round(v + (255 - v) * (c.head ? 0.45 : 0.25))));
+  if (!RT.on || c.t.live) return base;
+  return [...base.map(v => Math.round(v * 0.45 + 150 * 0.55)), 120];
+}
 let trains = [];
 function render() {
   trains = activeTrains(state.simTime);
@@ -682,7 +832,7 @@ function render() {
   overlay.setProps({ layers: [
     ...baseLayers(), ...lineLayers(),
     new SolidPolygonLayer({ id: 'trains', data: cars, getPolygon: c => c.polygon, extruded: true,
-      getElevation: c => c.height, getFillColor: c => c.t.color.map(v => Math.min(255, Math.round(v + (255 - v) * (c.head ? 0.45 : 0.25)))), pickable: true,
+      getElevation: c => c.height, getFillColor: c => trainColor(c), pickable: true,
       material: { ambient: 0.7, diffuse: 0.6, shininess: 24, specularColor: [70, 70, 70] } }),
     new SolidPolygonLayer({ id: 'selected', data: selCars, getPolygon: c => c.polygon, extruded: true,
       getElevation: c => c.height * 1.35, getFillColor: [255, 205, 0, 90], wireframe: true, getLineColor: [255, 205, 0] })
@@ -693,6 +843,24 @@ function render() {
   if (state.selected) renderInfo(sel);
 }
 
+// arrêts restants d'une rame : heures PRIM quand elles sont annoncées, sinon estimées d'après l'horaire
+function upcomingStops(sel) {
+  const pat = sel.pat, pr = sel.pr, stops = pat.stops, out = [];
+  if (!sel.live) {
+    for (let i = sel.next; i < stops.length; i++) out.push({ name: stops[i].name, secs: sel.start + pr.arr[i], est: RT.on });
+    return out;
+  }
+  const known = new Map(sel.calls.map(c => [c[0], c[1]]));
+  const nowMs = Date.now(), nowSecs = parisNow().secs;
+  let anchor = null; // [index, secondes]
+  for (let i = sel.next; i < stops.length; i++) {
+    const ms = known.get(stops[i].name);
+    if (ms != null) { const secs = nowSecs + (ms - nowMs) / 1000; anchor = [i, secs]; out.push({ name: stops[i].name, secs, est: false }); }
+    else if (anchor) out.push({ name: stops[i].name, secs: anchor[1] + pr.arr[i] - pr.arr[anchor[0]], est: true });
+  }
+  return out;
+}
+let stopsKey = '';
 function renderInfo(sel) {
   const box = document.getElementById('info');
   sel = sel || trains.find(t => t.id === state.selected);
@@ -704,19 +872,24 @@ function renderInfo(sel) {
   badge.style.fontSize = line.endsWith('b') ? '12px' : '17px';
   const stops = pat.stops;
   document.getElementById('i-dir').textContent = stops[stops.length - 1].name;
-  document.getElementById('i-state').textContent = (sel.atStop ? `À quai · ${sel.atStop}` : 'En circulation') + (sel.live ? ' · temps réel' : '');
-  const nextIdx = sel.atStop ? Math.min(sel.next + 1, stops.length - 1) : sel.next;
-  document.getElementById('i-next').textContent = sel.atStop && sel.next === stops.length - 1 ? 'Terminus' : stops[nextIdx].name;
-  if (sel.live) {
-    const etaSecs = parisNow().secs + (sel.eta[1] - Date.now()) / 1000;
-    document.getElementById('i-next').textContent = sel.eta[0];
-    document.getElementById('i-eta').textContent = fmt(etaSecs).slice(0, 8) + ' (PRIM)';
-    document.getElementById('i-dep').textContent = 'Suivi en temps réel';
-  } else {
-    document.getElementById('i-eta').textContent = fmtHM(sel.start + pr.arr[nextIdx]);
-    document.getElementById('i-dep').textContent = `${fmtHM(sel.start)} · ${stops[0].name}`;
-  }
+  document.getElementById('i-state').textContent = (sel.atStop ? `À quai · ${sel.atStop}` : 'En circulation') + (sel.live ? ' · annoncée par PRIM' : RT.on ? ' · estimée' : '');
+  document.getElementById('i-dep').textContent = sel.live ? 'Suivi en temps réel' : `${fmtHM(sel.start)} · ${stops[0].name}`;
   document.getElementById('i-prog').textContent = `${Math.round(100 * sel.e / pr.duration)} % · ${stops.length} gares`;
+  // perturbations de la ligne
+  const al = (traficLines()[line] || []).filter(d => d.whole).map(d => alertHTML(line, d, false)).join('');
+  const ia = document.getElementById('i-alerts');
+  if (ia.dataset.k !== al) { ia.innerHTML = al; ia.dataset.k = al; }
+  // prochains arrêts
+  const closed = new Set();
+  for (const d of traficLines()[line] || []) if (!d.whole && d.sev === 'BLOQUANTE') d.stops.forEach(n => closed.add(norm(n)));
+  const list = upcomingStops(sel);
+  const html = list.map(x => `<li class="${x.est ? 'est' : ''}${closed.has(norm(x.name)) ? ' closed' : ''}"><time>${x.est ? '~' : ''}${fmtHM(x.secs)}</time>` +
+    `<span class="pt" style="--line:${lineHex[line]}"></span><span>${esc(x.name)}${closed.has(norm(x.name)) ? ' · non desservie' : ''}</span></li>`).join('');
+  if (html !== stopsKey) { document.getElementById('i-stops').innerHTML = html; stopsKey = html; }
+  document.getElementById('i-src').textContent = sel.live
+    ? 'Heures en gras : annoncées par PRIM. En italique (~) : estimées d’après l’horaire théorique. La position entre deux gares est calculée.'
+    : RT.on ? 'Ligne sans donnée PRIM en ce moment : heures et position estimées d’après l’horaire théorique (GTFS).'
+            : 'Horaires théoriques officiels (GTFS Île-de-France Mobilités). La position entre deux gares est calculée.';
   box.hidden = false;
 }
 document.getElementById('close').addEventListener('click', () => { state.selected = null; setCam(null); document.getElementById('info').hidden = true; });
@@ -754,6 +927,7 @@ const liveBtn = document.getElementById('live'), liveStatus = document.getElemen
 function setLive(on) {
   RT.on = on && RT.available;
   liveBtn.setAttribute('aria-pressed', String(RT.on));
+  document.getElementById('legend').hidden = !RT.on;
   if (typeof updateNotes === 'function') updateNotes();
   state.selected = null;
   if (RT.on) {
@@ -786,6 +960,7 @@ async function pollRealtime() {
     const j = await r.json();
     if (!j || !j.lines) throw new Error('format');
     RT.data = j; RT.available = true;
+    updateTraficUI();
     document.getElementById('livebar').hidden = false;
     if (rtFirst && Object.keys(j.lines).length) { rtFirst = false; setLive(true); }
     // le relais en ligne remplit les 16 lignes par paquets de 4 : on rappelle vite au démarrage
@@ -812,6 +987,7 @@ ORDER.forEach(l => {
   b.setAttribute('aria-label', `Ligne ${LABEL(l)}${l.endsWith('b') ? ' bis' : ''}`);
   b.innerHTML = l.endsWith('b') ? `${LABEL(l)}<sup>bis</sup>` : l;
   b.style.background = `rgb(${lineColor[l].join(',')})`; b.style.color = textOn(lineColor[l]);
+  chipEls[l] = b;
   b.addEventListener('click', () => {
     if (state.hidden.has(l)) state.hidden.delete(l); else state.hidden.add(l);
     b.setAttribute('aria-pressed', String(!state.hidden.has(l)));
@@ -819,6 +995,162 @@ ORDER.forEach(l => {
   linesNav.appendChild(b);
 });
 document.getElementById('nstations').textContent = STATIONS.length;
+
+
+/* ---------- Panneaux : rame, gare, info trafic (un seul à la fois à droite) ---------- */
+state.traficOpen = false; state.traficLine = null;
+function hidePanels(except) {
+  for (const id of ['info', 'station', 'trafic']) if (id !== except) document.getElementById(id).hidden = true;
+  if (except !== 'info') { state.selected = null; setCam(null); }
+  if (except !== 'station') state.station = null;
+  if (except !== 'trafic') state.traficOpen = false;
+}
+function openTrain(id) { hidePanels('info'); state.selected = id; stopsKey = ''; renderInfo(); syncURL(); }
+function openStation(si, fly) {
+  hidePanels('station'); state.station = si; boardKey = ''; renderStation(); syncURL();
+  if (fly) map.flyTo({ center: STATIONS[si].p, zoom: Math.max(15.2, Math.min(map.getZoom(), 16.5)), pitch: 55, duration: 1600 });
+}
+function fitLine(l, duration = 1600) {
+  const b = new maplibregl.LngLatBounds();
+  NETWORK.filter(r => r.line === l).forEach(r => r.path.forEach(pt => b.extend(pt)));
+  if (b.isEmpty()) return;
+  const wide = innerWidth > 700;
+  map.fitBounds(b, { padding: wide ? { top: 60, bottom: 90, left: 340, right: 380 } : { top: 40, bottom: 260, left: 30, right: 30 }, pitch: 40, bearing: 0, duration });
+}
+function openTrafic(line, fly) {
+  hidePanels('trafic'); state.traficOpen = true; state.traficLine = line || null; traficKey = ''; renderTrafic(); syncURL();
+  if (line && fly) { state.hidden.delete(line); chipEls[line] && chipEls[line].setAttribute('aria-pressed', 'true'); fitLine(line); }
+}
+document.getElementById('close-t').addEventListener('click', () => { hidePanels(null); syncURL(); });
+document.getElementById('trafic-btn').addEventListener('click', () => state.traficOpen && !state.traficLine ? (hidePanels(null), syncURL()) : openTrafic(null));
+
+let traficKey = '';
+function renderTrafic() {
+  const box = document.getElementById('trafic');
+  if (!state.traficOpen) { box.hidden = true; return; }
+  const T = RT.data && RT.data.trafic, l = state.traficLine;
+  const maj = T ? new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }).format(new Date(T.updated)) : '';
+  let kicker, title, body;
+  if (!T) {
+    kicker = 'Info trafic'; title = 'Indisponible';
+    body = '<p class="alert sev-INFORMATION" style="margin:0">L’info trafic arrive avec le temps réel PRIM (relais en ligne ou serveur local). Elle n’est pas disponible pour le moment.</p>';
+  } else if (!l) {
+    kicker = `Info trafic · mise à jour ${maj}`; title = 'État des lignes';
+    body = '<ul id="t-list">' + ORDER.filter(x => lineColor[x]).map(x => {
+      const ds = traficLines()[x] || [], top = ds[0];
+      const label = !top ? 'Trafic normal' : top.whole ? SEV_LABEL[top.sev] === 'Interrompu' ? 'Trafic interrompu' : `Trafic ${SEV_LABEL[top.sev].toLowerCase()}` : top.short || SEV_LABEL[top.sev];
+      const sub = top ? (top.whole ? top.title.replace(/^Métro \w+ : /, '') : top.stops.join(', ')) + (ds.length > 1 ? ` · +${ds.length - 1}` : '') : '';
+      return `<li class="tline sev-${top ? top.sev : 'OK'}"><button type="button" data-line="${x}">${badgeHTML(x)}<span class="state">${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</span><span class="dot"></span></button></li>`;
+    }).join('') + '</ul>';
+  } else {
+    const ds = traficLines()[l] || [];
+    kicker = `Info trafic · Ligne ${LABEL(l)}${l.endsWith('b') ? ' bis' : ''} · ${maj}`;
+    title = ds.length ? (ds[0].whole ? `Trafic ${SEV_LABEL[ds[0].sev].toLowerCase()}` : ds[0].short || SEV_LABEL[ds[0].sev]) : 'Trafic normal';
+    body = `<button type="button" class="share" data-back>← Toutes les lignes</button>` +
+      (ds.length ? ds.map(d => alertHTML(l, d, false)).join('') : '<p class="alert sev-OK" style="margin:0">Aucune perturbation annoncée sur la ligne en ce moment.</p>');
+  }
+  const key = kicker + title + body;
+  if (key !== traficKey) {
+    traficKey = key;
+    document.getElementById('t-kicker').textContent = kicker;
+    document.getElementById('t-title').textContent = title;
+    document.getElementById('t-body').innerHTML = body;
+    box.querySelector('[data-share]').hidden = !l;
+  }
+  box.hidden = false;
+}
+document.getElementById('t-body').addEventListener('click', e => {
+  const b = e.target.closest('[data-line]'); if (b) openTrafic(b.dataset.line, true);
+  if (e.target.closest('[data-back]')) openTrafic(null);
+});
+
+function updateTraficUI() {
+  const T = RT.data && RT.data.trafic, btn = document.getElementById('trafic-btn');
+  for (const [l, el] of Object.entries(chipEls)) {
+    const sev = lineSev(l);
+    if (sev) { el.dataset.sev = sev; el.className = `chip sev-${sev}`; } else { delete el.dataset.sev; el.className = 'chip'; }
+  }
+  if (!T) { btn.hidden = true; return; }
+  const lines = Object.entries(T.lines);
+  const nLines = lines.filter(([, ds]) => ds.some(d => d.whole && d.sev !== 'INFORMATION')).length;
+  const nSt = alertedStations().filter(a => a.sev === 'BLOQUANTE').length;
+  const parts = [];
+  if (nLines) parts.push(`${nLines} ligne${nLines > 1 ? 's' : ''} perturbée${nLines > 1 ? 's' : ''}`);
+  if (nSt) parts.push(`${nSt} station${nSt > 1 ? 's' : ''} fermée${nSt > 1 ? 's' : ''}`);
+  const worst = lines.some(([, ds]) => ds.some(d => d.whole && d.sev === 'BLOQUANTE')) ? 'BLOQUANTE' : nLines ? 'PERTURBEE' : nSt ? 'PERTURBEE' : 'OK';
+  btn.className = `trafic-sum sev-${worst}`;
+  document.getElementById('trafic-txt').textContent = parts.length ? 'Trafic : ' + parts.join(' · ') : 'Trafic normal sur les 16 lignes';
+  btn.hidden = false;
+  if (state.traficOpen) renderTrafic();
+}
+
+/* ---------- Lien partageable : ?gare=chatelet, ?ligne=14 ---------- */
+function syncURL() {
+  const u = new URL(location.href);
+  u.searchParams.delete('gare'); u.searchParams.delete('ligne');
+  if (state.station != null) u.searchParams.set('gare', slug(STATIONS[state.station].n));
+  else if (state.traficOpen && state.traficLine) u.searchParams.set('ligne', state.traficLine.replace('b', 'bis'));
+  history.replaceState(null, '', u);
+}
+document.querySelectorAll('[data-share]').forEach(b => b.addEventListener('click', async () => {
+  const label = b.textContent;
+  try { await navigator.clipboard.writeText(location.href); b.textContent = 'Lien copié ✓'; }
+  catch (e) { b.textContent = location.href; }
+  setTimeout(() => { b.textContent = label; }, 2200);
+}));
+
+/* ---------- Recherche : gares et lignes ---------- */
+const SEARCH = [
+  ...ORDER.filter(l => lineColor[l]).map(l => ({ type: 'ligne', l, label: `Ligne ${LABEL(l)}${l.endsWith('b') ? ' bis' : ''}`,
+    key: norm(`ligne ${LABEL(l)}${l.endsWith('b') ? ' bis' : ''}`) })),
+  ...STATIONS.map((st, si) => ({ type: 'gare', si, label: st.n, key: norm(st.n) }))
+].map(x => ({ ...x, words: x.key.split(' ') }));
+const qIn = document.getElementById('q'), qRes = document.getElementById('q-res');
+let qItems = [], qActive = -1;
+function searchFor(text) {
+  const q = norm(text);
+  if (!q) return [];
+  const ql = q.replace(/^(ligne|metro|m) /, '').replace(/ ?bis$/, 'b').replace(/^(\d+) b$/, '$1b');
+  const out = [];
+  for (const x of SEARCH) {
+    let score = -1;
+    if (x.type === 'ligne') { if (x.l === ql || (q.startsWith('ligne') && x.key.startsWith(q))) score = 100; }
+    else if (x.key === q) score = 90;
+    else if (x.key.startsWith(q)) score = 80;
+    else if (x.words.some(w => w.startsWith(q))) score = 60;
+    else if (q.length > 2 && x.key.includes(q)) score = 40;
+    if (score >= 0) out.push([score, x]);
+  }
+  return out.sort((a, b) => b[0] - a[0] || a[1].label.length - b[1].label.length).slice(0, 8).map(a => a[1]);
+}
+const miniHTML = l => `<span class="mini" style="background:${lineHex[l]};color:${textOn(lineColor[l])}">${LABEL(l)}</span>`;
+function renderSearch() {
+  qItems = searchFor(qIn.value);
+  if (!qIn.value.trim()) { qRes.hidden = true; qIn.setAttribute('aria-expanded', 'false'); return; }
+  qRes.innerHTML = qItems.length ? qItems.map((x, i) => `<li role="option" id="qo-${i}" aria-selected="${i === qActive}" data-i="${i}">` +
+    (x.type === 'ligne' ? `${miniHTML(x.l)}<span>${x.label} · info trafic</span>` :
+      `<span>${esc(x.label)}</span><span class="lines">${STATIONS[x.si].l.slice().sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)).map(miniHTML).join('')}</span>`) + '</li>').join('')
+    : '<li class="empty">Aucune gare ne correspond</li>';
+  qRes.hidden = false; qIn.setAttribute('aria-expanded', 'true');
+  qIn.setAttribute('aria-activedescendant', qActive >= 0 ? `qo-${qActive}` : '');
+}
+function pick(x) {
+  if (!x) return;
+  qIn.value = ''; qActive = -1; renderSearch(); qIn.blur();
+  if (x.type === 'gare') { setLineVisible(STATIONS[x.si].l); openStation(x.si, true); }
+  else openTrafic(x.l, true);
+}
+function setLineVisible(ls) { ls.forEach(l => { if (state.hidden.has(l)) { state.hidden.delete(l); chipEls[l] && chipEls[l].setAttribute('aria-pressed', 'true'); } }); }
+qIn.addEventListener('input', () => { qActive = 0; renderSearch(); });
+qIn.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); qActive = Math.min(qItems.length - 1, qActive + 1); renderSearch(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); qActive = Math.max(0, qActive - 1); renderSearch(); }
+  else if (e.key === 'Enter') { e.preventDefault(); pick(qItems[Math.max(0, qActive)]); }
+  else if (e.key === 'Escape') { qIn.value = ''; renderSearch(); qIn.blur(); }
+});
+qRes.addEventListener('mousedown', e => { const li = e.target.closest('[data-i]'); if (li) { e.preventDefault(); pick(qItems[+li.dataset.i]); } });
+qIn.addEventListener('blur', () => setTimeout(() => { qRes.hidden = true; qIn.setAttribute('aria-expanded', 'false'); }, 120));
+qIn.addEventListener('focus', () => { if (qIn.value.trim()) renderSearch(); });
 
 /* ---------- Boucle ---------- */
 let last = performance.now();
@@ -834,6 +1166,15 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 let lastBoard = 0;
+{
+  const qs = new URLSearchParams(location.search);
+  const g = qs.get('gare'), l = (qs.get('ligne') || '').toLowerCase().replace(/ ?bis$/, 'b');
+  if (g && STATION_BY_SLUG.has(slug(g))) {
+    const si = STATION_BY_SLUG.get(slug(g));
+    map.jumpTo({ center: STATIONS[si].p, zoom: 15.4, pitch: 55 });
+    openStation(si, false);
+  } else if (l && lineColor[l]) { openTrafic(l, false); fitLine(l, 0); }
+}
 document.getElementById('loading').remove();
 requestAnimationFrame(frame);
 </script>

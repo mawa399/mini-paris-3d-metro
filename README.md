@@ -18,6 +18,11 @@ théoriques officiels d'Île-de-France Mobilités, ou en temps réel grâce à l
 - **Tableau des prochains départs** : un clic sur une gare affiche, ligne par ligne et par direction, les deux prochains passages (temps réel PRIM quand il est disponible, sinon horaires théoriques).
 - **Suivre une rame** ou passer en **vue cabine** depuis sa fiche : la caméra accompagne la rame le long de sa ligne.
 - **Horaires officiels** : environ 11 600 trajets un jour de semaine, 9 900 le samedi et 8 100 le dimanche, extraits du GTFS IDFM.
+- **Info trafic** : état des 16 lignes (API PRIM « Perturbations »), halo orange ou rouge sur une ligne perturbée, anneau rouge sur une gare non desservie, message officiel au clic.
+- **Fiche d'une rame** : direction et tous les prochains arrêts avec leur heure, annoncée par PRIM (en gras) ou estimée d'après l'horaire (~).
+- **Sûr ou estimé** : quand le temps réel est actif, les rames annoncées par PRIM sont pleines, celles estimées d'après l'horaire sont pâles.
+- **Recherche** d'une gare ou d'une ligne, et **liens partageables** : `?gare=chatelet`, `?ligne=14`.
+- **Page « [Comment ça marche](comment-ca-marche.html) »** : données, méthode et limites.
 - **Temps réel**, en ligne comme en local : chaque rame est placée d'après son heure de passage annoncée par PRIM à la prochaine gare.
 - **Horloge** réglable (×1 à ×300), choix du type de jour (semaine, samedi, dimanche), filtre par ligne.
 - **Fond de carte de secours embarqué** (Seine, Marne, canaux, bois, limites communales) : sans accès aux tuiles, la page fonctionne toujours.
@@ -29,7 +34,8 @@ théoriques officiels d'Île-de-France Mobilités, ou en temps réel grâce à l
 La page publiée sur GitHub Pages reçoit le temps réel par un petit relais
 [Cloudflare Worker](relais-cloudflare/worker.js) : il interroge PRIM avec une clé gardée en secret côté
 Cloudflare (jamais dans la page), garde chaque ligne en mémoire 60 s et renvoie le même JSON que le
-serveur local. Si le relais ne répond pas, la carte reste sur les horaires théoriques.
+serveur local, ainsi que les perturbations en cours sur le métro (relues toutes les 2 minutes).
+Si le relais ne répond pas, la carte reste sur les horaires théoriques.
 
 Pour déployer ton propre relais : crée un Worker à partir de `relais-cloudflare/worker.js`
 (ou `npx wrangler deploy` dans ce dossier), ajoute le secret `PRIM_API_KEY`, puis indique son adresse
@@ -90,6 +96,7 @@ python scripts/05_assemble.py         # produit index.html (page autonome)
 
 - Les horaires théoriques sont ceux de la semaine du 20 octobre 2026 : relance la chaîne pour les mettre à jour.
 - En temps réel, la position entre deux gares est estimée à partir de l'heure annoncée à la gare suivante.
+- Le flux PRIM du métro donne les heures annoncées mais pas les heures prévues : on ne peut pas y mesurer un retard ; l'info trafic joue ce rôle.
 - Une ligne sans données PRIM à un instant donné reste affichée sur l'horaire théorique.
 
 ## Inspiration
