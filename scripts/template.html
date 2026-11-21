@@ -768,7 +768,7 @@ function updateNotes() {
 liveBtn.addEventListener('click', () => setLive(!RT.on));
 let rtFirst = true;
 // Temps réel : serveur local (serveur.py) sur le PC, relais Cloudflare pour la page en ligne.
-const RELAIS_URL = '';   // ex. https://mini-paris-3d-temps-reel.<compte>.workers.dev
+const RELAIS_URL = 'https://mini-paris-3d-temps-reel.mawadiaw1.workers.dev';   // relais Cloudflare (relais-cloudflare/worker.js)
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RT_URL = LOCAL ? '/api/temps-reel' : (RELAIS_URL ? RELAIS_URL.replace(/\/$/, '') + '/api/temps-reel' : null);
 async function pollRealtime() {
