@@ -13,14 +13,17 @@ groups = {}
 for name, line, lon, lat, zdc in st:
     g = groups.setdefault(zdc or name, {'n': name, 'pts': [], 'l': set()})
     g['pts'].append((lon, lat)); g['l'].add(norm(line))
-stations = [{'n': g['n'],
+stations = [{'n': g['n'], 'z': str(z),
              'p': [round(sum(p[0] for p in g['pts']) / len(g['pts']), 5), round(sum(p[1] for p in g['pts']) / len(g['pts']), 5)],
-             'l': sorted(g['l'], key=ORDER.index)} for g in groups.values()]
+             'l': sorted(g['l'], key=ORDER.index)} for z, g in groups.items()]
+enrich = json.load(open('data/build/enrich.json', encoding='utf-8'))
+enrich = {k: v for k, v in enrich.items() if v}
 
 html = open('scripts/template.html').read()
 html = (html.replace('__NETWORK__', json.dumps(net, ensure_ascii=False, separators=(',', ':')))
             .replace('__BASEMAP__', json.dumps(base, separators=(',', ':')))
             .replace('__STATIONS__', json.dumps(stations, ensure_ascii=False, separators=(',', ':')))
+            .replace('__ENRICH__', json.dumps(enrich, separators=(',', ':')))
             .replace('__SCHEDULE__', sched))
 # document complet pour l'ouvrir hors de claude.ai (GitHub Pages, serveur local)
 doc = ('<!doctype html>\n<html lang="fr">\n<head>\n<meta charset="utf-8">\n'

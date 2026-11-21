@@ -9,15 +9,28 @@ théoriques officiels d'Île-de-France Mobilités, ou en temps réel grâce à l
 
 ![Aperçu de Mini Paris 3D](docs/apercu.png)
 
+**[Ouvrir la carte](https://mawa399.github.io/mini-paris-3d-metro/)** · [Comment ça marche](https://mawa399.github.io/mini-paris-3d-metro/comment-ca-marche.html) · [Version 1 (archivée)](https://mawa399.github.io/mini-paris-3d-metro/v1/)
+
+## Nouveautés de la version 2
+
+- **Fréquentation** : une colonne 3D par station, haute du nombre d'entrées pendant l'heure affichée (validations IDFM × profil horaire de la station). En accéléré, on voit l'heure de pointe se former.
+- **Accessibilité en fauteuil roulant** : stations accessibles (vert), en partie (orange) ou non, ligne par ligne, d'après le GTFS IDFM.
+- **Isochrones** : depuis une gare, à l'heure affichée, temps porte à porte en métro puis à pied (algorithme *Connection Scan*, 3 min par correspondance, marche à 4,5 km/h sur 1 km au plus), sur une grille de 150 m.
+- **Voir la rue** : la photo de rue libre [Panoramax](https://panoramax.fr/) la plus proche (à 360° avec Pannellum), sinon un lien Google Street View.
+- **Apparence** claire, sombre ou automatique (selon le lever et le coucher du soleil à l'heure affichée), avec `?theme=clair` ou `?theme=sombre` dans le lien.
+- **Horaires mis à jour** (semaine du 24 novembre 2026).
+
+La version 1 est conservée dans le dossier [`v1/`](v1/) et sous l'étiquette Git `v1.0`.
+
 ## Fonctionnalités
 
 - **16 lignes, 321 gares** : tracés et gares issus de l'open data Île-de-France Mobilités.
-- **Paris en 3D** : bâtiments extrudés selon leur hauteur réelle, rues, Seine, canaux et parcs (tuiles vectorielles OpenStreetMap, servies par OpenFreeMap), dans une ambiance de nuit.
+- **Paris en 3D** : bâtiments extrudés selon leur hauteur réelle, rues, Seine, canaux et parcs (tuiles vectorielles OpenStreetMap, servies par OpenFreeMap), de nuit ou de jour.
 - **Rames en 3D composées de voitures** : 6 voitures sur les lignes 1 et 4, 8 sur la 14, 3 sur les navettes 3bis et 7bis, 5 ailleurs. Elles suivent les courbes des voies, s'arrêtent à quai et accélèrent entre les gares.
 - **Quais en 3D** dans chaque gare, visibles en zoomant.
 - **Tableau des prochains départs** : un clic sur une gare affiche, ligne par ligne et par direction, les deux prochains passages (temps réel PRIM quand il est disponible, sinon horaires théoriques).
 - **Suivre une rame** ou passer en **vue cabine** depuis sa fiche : la caméra accompagne la rame le long de sa ligne.
-- **Horaires officiels** : environ 11 600 trajets un jour de semaine, 9 900 le samedi et 8 100 le dimanche, extraits du GTFS IDFM.
+- **Horaires officiels** : environ 11 800 trajets un jour de semaine, 9 400 le samedi et 7 500 le dimanche, extraits du GTFS IDFM.
 - **Info trafic** : état des 16 lignes (API PRIM « Perturbations »), halo orange ou rouge sur une ligne perturbée, anneau rouge sur une gare non desservie, message officiel au clic.
 - **Fiche d'une rame** : direction et tous les prochains arrêts avec leur heure, annoncée par PRIM (en gras) ou estimée d'après l'horaire (~).
 - **Sûr ou estimé** : quand le temps réel est actif, les rames annoncées par PRIM sont pleines, celles estimées d'après l'horaire sont pâles.
@@ -70,6 +83,7 @@ python scripts/01_fetch_sources.py    # tracés, gares, GTFS (~160 Mo) et extrai
 python scripts/02_build_network.py    # assemble les tronçons en itinéraires terminus → terminus
 python scripts/03_build_basemap.py    # fond de carte : eau, bois, limites administratives
 python scripts/04_extract_gtfs.py     # horaires du métro + correspondance quais → gares pour PRIM
+python scripts/06_enrich.py           # fréquentation (validations IDFM) et accessibilité (GTFS)
 python scripts/05_assemble.py         # produit index.html (page autonome)
 ```
 
@@ -94,7 +108,7 @@ python scripts/05_assemble.py         # produit index.html (page autonome)
 
 ## Limites
 
-- Les horaires théoriques sont ceux de la semaine du 20 octobre 2026 : relance la chaîne pour les mettre à jour.
+- Les horaires théoriques sont ceux de la semaine du 24 novembre 2026 : relance la chaîne pour les mettre à jour.
 - En temps réel, la position entre deux gares est estimée à partir de l'heure annoncée à la gare suivante.
 - Le flux PRIM du métro donne les heures annoncées mais pas les heures prévues : on ne peut pas y mesurer un retard ; l'info trafic joue ce rôle.
 - Une ligne sans données PRIM à un instant donné reste affichée sur l'horaire théorique.

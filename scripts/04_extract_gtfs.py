@@ -15,7 +15,7 @@ def rows(name):
     with z.open(name) as fh:
         yield from csv.DictReader(io.TextIOWrapper(fh, 'utf-8-sig'))
 
-DAYS = {'weekday': datetime.date(2026, 10, 20), 'saturday': datetime.date(2026, 10, 24), 'sunday': datetime.date(2026, 10, 25)}
+DAYS = {'weekday': datetime.date(2026, 11, 24), 'saturday': datetime.date(2026, 11, 28), 'sunday': datetime.date(2026, 11, 29)}
 WD = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
 routes = {r['route_id']: r['route_short_name'].lower() for r in rows('routes.txt') if r['route_type'] == '1'}

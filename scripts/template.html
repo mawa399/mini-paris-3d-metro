@@ -19,7 +19,24 @@
   --park: #12291f;
   --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --ink2: #c9d2e6;
+  --field: rgba(255,255,255,.06);
 }
+/* Apparence claire : plan de ville de jour */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --night: #eef0f3;
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-solid: #ffffff;
+  --rule: rgba(20, 30, 60, 0.14);
+  --ink: #141a2a;
+  --ink2: #3a4560;
+  --muted: #5d6882;
+  --field: rgba(20, 30, 60, .05);
+}
+:root[data-theme="light"] .panel { box-shadow: 0 6px 24px rgba(20, 30, 60, .12); }
+:root[data-theme="light"] .controls button[aria-pressed="true"] { border-color: #e0b400; }
+:root[data-theme="light"] .live button[aria-pressed="true"] { border-color: #13a35a; color: #13a35a; }
 [hidden] { display: none !important; }
 html, body { height: 100%; }
 body { margin: 0; background: var(--night); color: var(--ink); font-family: var(--body); overflow: hidden; }
@@ -132,7 +149,7 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 }
 /* Recherche */
 .search { position: relative; }
-#q { width: 100%; box-sizing: border-box; font: 500 14px var(--body); color: var(--ink); background: rgba(255,255,255,.06);
+#q { width: 100%; box-sizing: border-box; font: 500 14px var(--body); color: var(--ink); background-color: var(--field);
   border: 1px solid var(--rule); border-radius: 7px; padding: 8px 10px 8px 32px; outline: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238d99b3' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='7' cy='7' r='5'/%3E%3Cpath d='m11 11 4 4'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: 10px 50%; }
@@ -170,9 +187,9 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 .tline .badge, .alert .badge { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--display); flex: 0 0 auto; }
 .tline .state { font-size: 13.5px; } .tline .state small { display: block; color: var(--muted); font-size: 11.5px; }
 .tline .dot { margin-left: auto; }
-.alert { border-left: 3px solid var(--sev); background: rgba(255,255,255,.04); border-radius: 0 6px 6px 0; padding: 8px 10px; font-size: 13px; line-height: 1.4; display: grid; gap: 4px; }
+.alert { border-left: 3px solid var(--sev); background: var(--field); border-radius: 0 6px 6px 0; padding: 8px 10px; font-size: 13px; line-height: 1.4; display: grid; gap: 4px; }
 .alert b { font-weight: 600; }
-.alert p { margin: 0; color: #c9d2e6; white-space: pre-line; }
+.alert p { margin: 0; color: var(--ink2); white-space: pre-line; }
 .alert small { color: var(--muted); font-size: 11.5px; }
 #close-t { position: absolute; top: 8px; right: 8px; background: none; border: 0; color: var(--muted); font-size: 20px; cursor: pointer; line-height: 1; padding: 4px 8px; }
 .share { font: 600 12.5px var(--body); color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 6px; padding: 5px 9px; cursor: pointer; justify-self: start; }
@@ -190,6 +207,58 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 .legend i { display: inline-block; width: 14px; height: 7px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
 #credits a { pointer-events: auto; color: var(--ink); }
 
+/* ---- Version 2 : apparence, analyses, voir la rue ---- */
+.brand .tools { display: flex; gap: 4px; align-items: center; }
+.iconbtn { font: 600 12px var(--body); color: var(--muted); background: transparent; border: 1px solid var(--rule); border-radius: 6px;
+  padding: 3px 7px; cursor: pointer; line-height: 1.2; }
+.iconbtn:hover { color: var(--ink); border-color: var(--muted); }
+#collapse { display: none; }
+#control { max-height: calc(100vh - 100px); overflow-y: auto; }
+.group { display: grid; gap: 6px; }
+.group > span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.toggles { display: flex; flex-wrap: wrap; gap: 6px; }
+.toggles button { font: 600 13px var(--body); color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 6px;
+  padding: 5px 9px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.toggles button:hover { border-color: var(--muted); }
+.toggles button[aria-pressed="true"] { background: var(--ink); color: var(--panel-solid); border-color: var(--ink); }
+.toggles button:focus-visible, .iconbtn:focus-visible, .actions button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+.hint { font-size: 11.5px; color: var(--muted); line-height: 1.4; margin: 0; }
+.hint b { color: var(--ink); font-weight: 600; }
+.ramp { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+.ramp i { flex: 1; height: 6px; border-radius: 3px; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.actions button { font: 600 12.5px var(--body); color: var(--ink); background: transparent; border: 1px solid var(--rule); border-radius: 6px;
+  padding: 5px 9px; cursor: pointer; }
+.actions button:hover { border-color: var(--muted); }
+.actions button[aria-pressed="true"] { background: var(--signal); color: #111; border-color: var(--signal); }
+.facts { display: grid; gap: 6px; border-top: 1px solid var(--rule); padding-top: 8px; font-size: 13px; }
+.facts h3 { margin: 0; font: 600 11px var(--body); color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.facts .big { font: 600 20px var(--display); font-variant-numeric: tabular-nums; }
+.facts .big small { font: 500 12px var(--body); color: var(--muted); margin-left: 4px; }
+.spark { display: block; width: 100%; height: 42px; }
+.acc { display: flex; flex-wrap: wrap; gap: 6px 10px; }
+.acc span { display: inline-flex; align-items: center; gap: 5px; }
+.acc .mini { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font: 700 10px var(--display); }
+.ok { color: #22a565; font-weight: 600; } .ko { color: var(--muted); } .part { color: #d38b00; font-weight: 600; }
+#iso-legend { left: 50%; transform: translateX(-50%); top: calc(12px + env(safe-area-inset-top, 0px));
+  width: min(330px, calc(100vw - 24px)); padding: 10px 12px; display: grid; gap: 6px; font-size: 12.5px; }
+#iso-legend b { font-weight: 600; }
+#iso-legend .bands { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; font-size: 11px; color: var(--muted); text-align: center; }
+#iso-legend .bands i { display: block; height: 8px; border-radius: 2px; margin-bottom: 2px; }
+#iso-close, #st-close { position: absolute; top: 4px; right: 4px; background: none; border: 0; color: var(--muted); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+#street { left: 50%; transform: translateX(-50%); bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  width: min(680px, calc(100vw - 24px)); padding: 10px; display: grid; gap: 8px; z-index: 8; }
+#street header { display: flex; align-items: baseline; gap: 8px; padding-right: 30px; }
+#street h2 { margin: 0; font: 600 18px var(--display); }
+#street header small { color: var(--muted); font-size: 12px; }
+#pano { width: 100%; height: min(380px, 46vh); border-radius: 7px; overflow: hidden; background: #000; position: relative; }
+#pano img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#pano .msg { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 20px; color: #cfd6e6; font-size: 14px; }
+#street footer { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; font-size: 11.5px; color: var(--muted); }
+#street footer a { font: 600 12.5px var(--body); color: var(--ink); border: 1px solid var(--rule); border-radius: 6px; padding: 5px 9px; text-decoration: none; }
+#street footer a:hover { border-color: var(--muted); }
+.v1link { color: var(--muted); }
+
 #loading { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); font-family: var(--display); font-size: 18px; letter-spacing: .08em; text-transform: uppercase; }
 
 @media (max-width: 760px) {
@@ -199,6 +268,13 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
   #info, #station, #trafic { top: auto; bottom: calc(64px + env(safe-area-inset-bottom, 0px)); max-height: 52vh; overflow-y: auto; z-index: 7; }
   #i-stops { max-height: 140px; }
   #credits { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); max-width: 55vw; }
+  #collapse { display: inline-block; }
+  .brand .tools small { display: none; }
+  #control.collapsed > :not(.brand):not(.search) { display: none; }
+  #control { max-height: 62vh; }
+  #street { bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
+  #pano { height: 40vh; }
+  #iso-legend { top: calc(70px + env(safe-area-inset-top, 0px)); z-index: 6; }
 }
 @media (prefers-reduced-motion: reduce) { .chip { transition: none; } }
 </style>
@@ -207,7 +283,8 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 <div id="loading">Chargement du réseau…</div>
 
 <section id="control" class="panel" aria-label="Contrôles de la simulation">
-  <div class="brand"><h1>Mini Paris <span>3D</span></h1><small>Métro · 16 lignes</small></div>
+  <div class="brand"><h1>Mini Paris <span>3D</span></h1><div class="tools"><small>Métro · 16 lignes</small>
+    <button id="collapse" class="iconbtn" type="button" aria-expanded="true" aria-controls="control">Réduire</button></div></div>
   <div class="search" role="search">
     <label for="q" class="sr-only" style="position:absolute;left:-9999px">Rechercher une gare ou une ligne</label>
     <input id="q" type="search" placeholder="Rechercher une gare, une ligne…" autocomplete="off" spellcheck="false"
@@ -235,7 +312,26 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
   </div>
   <div class="legend" id="legend" hidden><span><i style="background:#e6ebf5"></i>Annoncée par PRIM</span><span><i style="background:rgba(230,235,245,.35)"></i>Estimée d'après l'horaire</span></div>
   <button id="trafic-btn" class="trafic-sum sev-OK" type="button" hidden><span class="dot" aria-hidden="true"></span><span id="trafic-txt"></span></button>
-  <p class="note" id="note">Horaires théoriques officiels (GTFS Île-de-France Mobilités, semaine du 20 octobre 2026). Les rames sont placées entre deux gares par interpolation : retards et incidents ne sont pas pris en compte.</p>
+  <div class="group" role="group" aria-label="Analyses">
+    <span>Analyses</span>
+    <div class="toggles">
+      <button id="t-freq" type="button" aria-pressed="false">Fréquentation</button>
+      <button id="t-acc" type="button" aria-pressed="false">Accessibilité</button>
+    </div>
+    <p class="hint" id="freq-hint" hidden></p>
+    <div class="ramp" id="freq-ramp" hidden><span>peu</span><i style="background:linear-gradient(90deg,#ffe08a,#ff9f1a,#e8412c,#9b1b5a)"></i><span>beaucoup</span></div>
+    <p class="hint" id="acc-hint" hidden></p>
+    <p class="hint">Isochrones et « voir la rue » : cliquez sur une gare.</p>
+  </div>
+  <div class="group" role="group" aria-label="Apparence">
+    <span>Apparence</span>
+    <div class="toggles" id="theme-btns">
+      <button type="button" data-theme="auto" aria-pressed="true">Auto</button>
+      <button type="button" data-theme="light" aria-pressed="false">Clair</button>
+      <button type="button" data-theme="dark" aria-pressed="false">Sombre</button>
+    </div>
+  </div>
+  <p class="note" id="note">Horaires théoriques officiels (GTFS Île-de-France Mobilités, semaine du 24 novembre 2026). Les rames sont placées entre deux gares par interpolation : retards et incidents ne sont pas pris en compte.</p>
 </section>
 
 <nav id="lines" class="panel" aria-label="Afficher ou masquer les lignes"></nav>
@@ -263,7 +359,12 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
   <div id="s-alerts"></div>
   <ul id="s-board"></ul>
   <p id="s-empty" hidden>Aucun départ dans l'heure.</p>
-  <button class="share" type="button" data-share>Copier le lien de cette gare</button>
+  <div class="actions">
+    <button type="button" id="b-iso" aria-pressed="false">Isochrones depuis ici</button>
+    <button type="button" id="b-street">Voir la rue</button>
+    <button class="share" type="button" data-share>Copier le lien</button>
+  </div>
+  <div id="s-facts"></div>
 </aside>
 
 <aside id="trafic" class="panel" hidden aria-live="polite">
@@ -273,7 +374,21 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
   <button class="share" type="button" data-share hidden>Copier le lien de cette ligne</button>
 </aside>
 
-<div id="credits"><a href="comment-ca-marche.html">Comment ça marche ?</a> · <span id="credits-src">Données : Île-de-France Mobilités (open data) · Carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap<br>Horaires théoriques GTFS, sans le temps réel</span></div>
+<aside id="iso-legend" class="panel" hidden aria-live="polite">
+  <button id="iso-close" type="button" aria-label="Fermer les isochrones">×</button>
+  <div><b id="iso-title"></b><br><span id="iso-sub" style="color:var(--muted)"></span></div>
+  <div class="bands"><span><i style="background:#2ecc71"></i>15 min</span><span><i style="background:#c7d93a"></i>30 min</span><span><i style="background:#f39c12"></i>45 min</span><span><i style="background:#e74c3c"></i>60 min</span></div>
+  <p class="hint" style="margin:0">Métro (horaires théoriques, 3 min par correspondance) puis marche à 4,5 km/h, 1 km au plus.</p>
+</aside>
+
+<aside id="street" class="panel" hidden aria-label="Voir la rue">
+  <button id="st-close" type="button" aria-label="Fermer">×</button>
+  <header><h2 id="st-title"></h2><small id="st-sub"></small></header>
+  <div id="pano"></div>
+  <footer><span id="st-credit"></span><span style="display:flex;gap:6px;flex-wrap:wrap"><a id="st-pmx" target="_blank" rel="noopener">Ouvrir dans Panoramax</a><a id="st-google" target="_blank" rel="noopener">Google Street View</a></span></footer>
+</aside>
+
+<div id="credits"><a href="comment-ca-marche.html">Comment ça marche ?</a> · <a class="v1link" href="v1/">Version 1</a> · <span id="credits-src">Données : Île-de-France Mobilités (open data) · Carte : OpenFreeMap, © OpenMapTiles, © contributeurs OpenStreetMap<br>Horaires théoriques GTFS, sans le temps réel</span></div>
 
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -282,6 +397,7 @@ body { margin: 0; background: var(--night); color: var(--ink); font-family: var(
 const NETWORK = __NETWORK__;
 const BASEMAP = __BASEMAP__;
 const STATIONS = __STATIONS__;
+const ENRICH = __ENRICH__;   // fréquentation et accessibilité, par zone de correspondance (id_zdc)
 const SCHEDULE = __SCHEDULE__;
 
 /* ---------- Lignes ---------- */
@@ -629,6 +745,9 @@ function renderStation() {
   const sa = document.getElementById('s-alerts');
   if (sa.dataset.k !== al) { sa.innerHTML = al; sa.dataset.k = al; }
   document.getElementById('s-empty').hidden = list.length > 0;
+  const fx = factsHTML(state.station), sf = document.getElementById('s-facts');
+  if (sf.dataset.k !== fx) { sf.innerHTML = fx; sf.dataset.k = fx; }
+  document.getElementById('b-iso').setAttribute('aria-pressed', String(!!state.iso && state.iso.src === state.station));
   box.hidden = false;
 }
 document.getElementById('s-close').addEventListener('click', () => { state.station = null; renderStation(); syncURL(); });
@@ -674,20 +793,75 @@ const NIGHT = {
   ]
 };
 
+// Plan de jour : même structure, couleurs claires ; bâtiments en volumes gris chaud, bien lisibles
+const DAY = JSON.parse(JSON.stringify(NIGHT));
+{
+  const paint = {
+    fond: { 'background-color': '#eceae4' },
+    verdure: { 'fill-color': '#d3e4c3', 'fill-opacity': 0.9 },
+    parcs: { 'fill-color': '#cfe2bc' },
+    cimetieres: { 'fill-color': '#dfe3d6' },
+    eau: { 'fill-color': '#a8cbe6' },
+    canaux: { 'line-color': '#a8cbe6' },
+    'rues-fines': { 'line-color': '#ffffff' },
+    rues: { 'line-color': '#ffffff' },
+    axes: { 'line-color': '#fbe7b5' },
+    'noms-rues': { 'text-color': '#6b7389', 'text-halo-color': '#ffffff' },
+    quartiers: { 'text-color': '#7a8196', 'text-halo-color': '#f4f3ef' }
+  };
+  for (const l of DAY.layers) Object.assign(l.paint, paint[l.id] || {});
+  const b = DAY.layers.find(l => l.id === 'batiments').paint;
+  b['fill-extrusion-color'] = ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 10], 0, '#e2ded6', 25, '#d6d1c7', 60, '#c7c1b6'];
+  b['fill-extrusion-opacity'] = 0.92;
+  DAY.light = { anchor: 'viewport', color: '#ffffff', intensity: 0.45, position: [1.3, 210, 40] };
+}
+
+/* ---------- Apparence : clair, sombre, ou automatique selon le soleil à l'heure affichée ---------- */
+const PALETTE = {
+  dark: { ground: [11, 17, 32], station: [240, 244, 252], stationLine: [11, 17, 32], label: [232, 238, 250], labelOutline: [11, 17, 32, 230],
+          quais: [196, 205, 226, 235], park: [22, 52, 38, 255], water: [18, 55, 84, 255], adm: [120, 140, 180], glow: 55, glowClose: 30, carLighten: [0.45, 0.25] },
+  light: { ground: [236, 234, 228], station: [255, 255, 255], stationLine: [30, 36, 52], label: [24, 30, 46], labelOutline: [255, 255, 255, 235],
+          quais: [150, 156, 170, 240], park: [207, 226, 188, 255], water: [168, 203, 230, 255], adm: [110, 118, 140], glow: 40, glowClose: 22, carLighten: [0.2, 0] }
+};
+// lever et coucher du soleil à Paris (approximation astronomique, à quelques minutes près), en secondes depuis minuit
+function sunTimes(date) {
+  const start = Date.UTC(date.getUTCFullYear(), 0, 0), n = Math.floor((date - start) / 864e5);
+  const rad = Math.PI / 180, lat = 48.8566, lon = 2.3522;
+  const decl = 23.44 * Math.sin(2 * Math.PI * (284 + n) / 365) * rad;
+  const H = Math.acos(Math.max(-1, Math.min(1, (Math.sin(-0.83 * rad) - Math.sin(lat * rad) * Math.sin(decl)) / (Math.cos(lat * rad) * Math.cos(decl))))) / rad;
+  const B = 2 * Math.PI * (n - 81) / 364, eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+  const offset = new Date(date.toLocaleString('en-US', { timeZone: 'Europe/Paris' })) - new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const noon = (12 * 60 - 4 * lon - eot) * 60 + offset / 1000;
+  return [noon - H * 240, noon + H * 240];
+}
+const SUN = sunTimes(new Date());
+const prefTheme = (() => {
+  const q = new URLSearchParams(location.search).get('theme');
+  const m = { clair: 'light', sombre: 'dark', auto: 'auto', light: 'light', dark: 'dark' }[q];
+  if (m) return m;
+  try { return localStorage.getItem('mp3d-theme') || 'auto'; } catch (e) { return 'auto'; }
+})();
+state.themeMode = prefTheme;
+const effectiveTheme = () => state.themeMode !== 'auto' ? state.themeMode
+  : ((state.simTime % 86400) >= SUN[0] && (state.simTime % 86400) < SUN[1] ? 'light' : 'dark');
+state.theme = effectiveTheme();
+document.documentElement.dataset.theme = state.theme;
+let PAL = PALETTE[state.theme];
+
 /* ---------- Couches deck.gl ---------- */
-const { MapboxOverlay, PathLayer, SolidPolygonLayer, ScatterplotLayer, TextLayer, PolygonLayer, LightingEffect, AmbientLight, DirectionalLight } = deck;
+const { MapboxOverlay, PathLayer, SolidPolygonLayer, ScatterplotLayer, TextLayer, PolygonLayer, ColumnLayer, LightingEffect, AmbientLight, DirectionalLight } = deck;
 
 // fond de carte embarqué : n'est dessiné que si les tuiles de la ville ne se chargent pas (hors ligne)
 const baseLayers = () => state.tilesOk ? [] : [
   new PolygonLayer({ id: 'park', data: BASEMAP.park, getPolygon: d => d, filled: true, stroked: false,
-    getFillColor: [22, 52, 38, 255] }),
+    getFillColor: PAL.park, updateTriggers: { getFillColor: state.theme } }),
   new PolygonLayer({ id: 'water-poly', data: BASEMAP.water, getPolygon: d => d, filled: true, stroked: false,
-    getFillColor: [18, 55, 84, 255] }),
+    getFillColor: PAL.water, updateTriggers: { getFillColor: state.theme } }),
   new PathLayer({ id: 'rivers', data: BASEMAP.rivers || [], getPath: d => d.p,
     getWidth: d => d.w, widthUnits: 'meters', widthMinPixels: 1.5, capRounded: true, jointRounded: true,
-    getColor: [18, 55, 84, 255] }),
+    getColor: PAL.water, updateTriggers: { getColor: state.theme } }),
   new PathLayer({ id: 'adm', data: BASEMAP.adm, getPath: d => d[1], widthUnits: 'pixels',
-    getWidth: d => d[0] === 'adm9' ? 0.6 : 0.8, getColor: d => d[0] === 'adm9' ? [120, 140, 180, 60] : [120, 140, 180, 90] }),
+    getWidth: d => d[0] === 'adm9' ? 0.6 : 0.8, getColor: d => [...PAL.adm, d[0] === 'adm9' ? 60 : 90], updateTriggers: { getColor: state.theme } }),
 ];
 
 const visibleStations = () => STATIONS.map((s, i) => ({ ...s, i })).filter(s => s.l.some(l => !state.hidden.has(l)));
@@ -701,22 +875,22 @@ const lineLayers = () => {
       getColor: r => [...SEV_RGB[lineSev(r.line)] || SEV_RGB.PERTURBEE, 120], getWidth: close ? 22 : 15, widthUnits: 'pixels',
       jointRounded: true, capRounded: true, updateTriggers: { getColor: tk, getWidth: close } }),
     new PathLayer({ id: 'lines-glow', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
-      getColor: r => [...lineColor[r.line], close ? 30 : 55], getWidth: close ? 14 : 9, widthUnits: 'pixels', jointRounded: true, capRounded: true,
-      updateTriggers: { data: [...state.hidden].join(), getColor: close, getWidth: close } }),
+      getColor: r => [...lineColor[r.line], close ? PAL.glowClose : PAL.glow], getWidth: close ? 14 : 9, widthUnits: 'pixels', jointRounded: true, capRounded: true,
+      updateTriggers: { data: [...state.hidden].join(), getColor: [close, state.theme], getWidth: close } }),
     // voies : 3 px de loin, puis la largeur réelle d'une double voie (~7 m) de près, assombries pour que les rames ressortent
     new PathLayer({ id: 'lines', data: NETWORK.filter(r => !state.hidden.has(r.line)), getPath: r => r.path,
-      getColor: r => close ? lineColor[r.line].map(v => Math.round(v * 0.38 + 11 * 0.62)) : lineColor[r.line],
+      getColor: r => close ? lineColor[r.line].map((v, k) => Math.round(v * 0.38 + PAL.ground[k] * 0.62)) : lineColor[r.line],
       getWidth: 7, widthUnits: 'meters', widthMinPixels: 3, jointRounded: true, capRounded: true,
-      updateTriggers: { data: [...state.hidden].join(), getColor: close } }),
+      updateTriggers: { data: [...state.hidden].join(), getColor: [close, state.theme] } }),
     // quais en 3D, visibles de près
     new SolidPolygonLayer({ id: 'quais', data: PLATFORMS.filter(q => !state.hidden.has(q.line)), visible: close,
-      getPolygon: q => q.polygon, extruded: true, getElevation: 1.1, getFillColor: [196, 205, 226, 235],
-      material: { ambient: 0.6, diffuse: 0.5 }, updateTriggers: { data: [...state.hidden].join() } }),
+      getPolygon: q => q.polygon, extruded: true, getElevation: 1.1, getFillColor: PAL.quais,
+      material: { ambient: 0.6, diffuse: 0.5 }, updateTriggers: { data: [...state.hidden].join(), getFillColor: state.theme } }),
     new ScatterplotLayer({ id: 'stations', data: visibleStations(), pickable: true, visible: !close,
       getPosition: s => s.p, getRadius: s => s.l.length > 1 ? 55 : 38, radiusUnits: 'meters',
       radiusMinPixels: 2.5, radiusMaxPixels: 9, filled: true, stroked: true,
-      getFillColor: s => s.i === state.station ? [255, 205, 0] : [240, 244, 252], getLineColor: [11, 17, 32], lineWidthMinPixels: 1.2,
-      updateTriggers: { data: [...state.hidden].join(), getFillColor: state.station } }),
+      getFillColor: s => s.i === state.station ? [255, 205, 0] : PAL.station, getLineColor: PAL.stationLine, lineWidthMinPixels: 1.2,
+      updateTriggers: { data: [...state.hidden].join(), getFillColor: [state.station, state.theme], getLineColor: state.theme } }),
     // de près, la gare reste cliquable par une zone invisible autour de ses quais
     new ScatterplotLayer({ id: 'stations-hit', data: visibleStations(), pickable: true, visible: close,
       getPosition: s => s.p, getRadius: 70, radiusUnits: 'meters', getFillColor: [0, 0, 0, 0],
@@ -730,9 +904,9 @@ const lineLayers = () => {
     new TextLayer({ id: 'labels', data: visibleStations(),
       visible: state.zoom > 13.6, getPosition: s => [s.p[0], s.p[1], close ? 12 : 0], getText: s => s.n, characterSet: 'auto',
       fontFamily: 'Barlow, "Segoe UI", sans-serif', fontWeight: 600, getSize: close ? 14 : 12, sizeUnits: 'pixels',
-      getColor: [232, 238, 250], getPixelOffset: [0, -14], outlineWidth: 3, outlineColor: [11, 17, 32, 230],
+      getColor: PAL.label, getPixelOffset: [0, -14], outlineWidth: 3, outlineColor: PAL.labelOutline,
       fontSettings: { sdf: true }, billboard: true,
-      updateTriggers: { data: [...state.hidden].join(), getSize: close, getPosition: close } })
+      updateTriggers: { data: [...state.hidden].join(), getSize: close, getPosition: close, getColor: state.theme } })
   ];
 };
 
@@ -745,7 +919,7 @@ const startView = location.hash === '#centre'
   ? { center: [2.347, 48.8585], zoom: 14.6, pitch: 60, bearing: -25 }
   : { center: [2.3425, 48.8585], zoom: 12.1, pitch: 52, bearing: -18 };
 const map = new maplibregl.Map({
-  container: 'map', style: NIGHT, ...startView, maxPitch: 85, attributionControl: false, antialias: true
+  container: 'map', style: state.theme === 'light' ? DAY : NIGHT, ...startView, maxPitch: 85, attributionControl: false, antialias: true
 });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'bottom-right');
 state.zoom = startView.zoom;
@@ -755,14 +929,41 @@ map.on('data', e => { if (e.sourceId === 'omt' && e.dataType === 'source' && e.t
 // l'utilisateur reprend la main sur la caméra : on arrête de suivre la rame
 ['dragstart', 'wheel', 'touchstart'].forEach(ev => map.on(ev, e => { if (e.originalEvent) setCam(null); }));
 
-const tipStyle = { background: '#111a2e', color: '#e6ebf5', fontFamily: 'Barlow, sans-serif', fontSize: '13px', borderRadius: '6px', padding: '6px 9px', border: '1px solid rgba(148,163,196,.25)' };
+const tipStyle = { background: '#111a2e', color: '#e6ebf5', fontFamily: 'Barlow, sans-serif', fontSize: '13px', borderRadius: '6px', padding: '6px 9px', border: '1px solid rgba(148,163,196,.25)', whiteSpace: 'pre-line', maxWidth: '280px' };
+const setTip = t => Object.assign(tipStyle, t === 'light'
+  ? { background: '#ffffff', color: '#141a2a', border: '1px solid rgba(20,30,60,.15)' }
+  : { background: '#111a2e', color: '#e6ebf5', border: '1px solid rgba(148,163,196,.25)' });
+setTip(state.theme);
+function applyTheme() {
+  const t = effectiveTheme();
+  document.querySelectorAll('#theme-btns [data-theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === state.themeMode)));
+  if (t === state.theme) return;
+  state.theme = t; PAL = PALETTE[t];
+  document.documentElement.dataset.theme = t;
+  map.setStyle(t === 'light' ? DAY : NIGHT, { diff: true });
+  setTip(t);
+}
+applyTheme();
+document.getElementById('theme-btns').addEventListener('click', e => {
+  const b = e.target.closest('[data-theme]'); if (!b) return;
+  state.themeMode = b.dataset.theme;
+  try { localStorage.setItem('mp3d-theme', state.themeMode); } catch (err) { /* stockage indisponible */ }
+  applyTheme(); syncURL();
+});
 const overlay = new MapboxOverlay({
   interleaved: false,
   effects: [lighting],
   getTooltip: ({ object, layer }) => {
     if (!object || !layer) return null;
     if (layer.id === 'trains') return { text: `Ligne ${LABEL(object.t.pat.line)} → ${object.t.pat.stops[object.t.pat.stops.length-1].name}`, style: tipStyle };
-    if (layer.id === 'stations' || layer.id === 'stations-hit') return { text: `${object.n}\nLignes ${object.l.map(LABEL).join(', ')}\nCliquer pour les prochains départs`, style: tipStyle };
+    if (layer.id === 'stations' || layer.id === 'stations-hit') {
+      const iso = state.iso && state.iso.best[object.i] - state.iso.T0;
+      return { text: `${object.n}\nLignes ${object.l.map(LABEL).join(', ')}` + (iso != null && iso <= ISO_MAX ? `\n${Math.round(iso / 60)} min en métro depuis ${STATIONS[state.iso.src].n}` : '') + '\nCliquer pour les prochains départs', style: tipStyle };
+    }
+    if (layer.id === 'freq') { const d = DT_IDX[state.dayType], h = hourOf();
+      return { text: `${object.s.n}\n≈ ${fmtN(object.v)} entrées entre ${h} h et ${(h + 1) % 24} h\n${fmtN(EN[object.s.i].v[d])} par ${DT_TXT[d]}`, style: tipStyle }; }
+    if (layer.id === 'acc') return { text: `${object.s.n}\n` + object.s.l.map(l => `Ligne ${LABEL(l)} : ${ACC_TXT[(EN[object.s.i].a || {})[l] ?? 0]}`).join('\n'), style: tipStyle };
+    if (layer.id === 'iso') return { text: `≈ ${Math.round(object.v / 60)} min depuis ${STATIONS[state.iso.src].n}`, style: tipStyle };
     if (layer.id === 'alerts') { const a = stationAlerts(object.si); return a.length ? { text: `${STATIONS[object.si].n}\n` + a.map(x => `Ligne ${LABEL(x.line)} : ${x.d.short || SEV_LABEL[x.d.sev]}`).join('\n'), style: tipStyle } : null; }
     return null;
   },
@@ -771,6 +972,7 @@ const overlay = new MapboxOverlay({
     if (layer.id === 'trains') { openTrain(object.t.id); }
     else if (layer.id === 'stations' || layer.id === 'stations-hit') openStation(object.i);
     else if (layer.id === 'alerts') openStation(object.si);
+    else if (layer.id === 'freq' || layer.id === 'acc') openStation(object.s.i);
   },
   layers: []
 });
@@ -808,7 +1010,8 @@ function driveCamera(sel) {
 
 // rame annoncée par PRIM : couleur pleine ; rame estimée d'après l'horaire (quand le temps réel est actif) : pâle et translucide
 function trainColor(c) {
-  const base = c.t.color.map(v => Math.min(255, Math.round(v + (255 - v) * (c.head ? 0.45 : 0.25))));
+  const k = PAL.carLighten[c.head ? 0 : 1];
+  const base = c.t.color.map(v => Math.min(255, Math.round(v + (255 - v) * k)));
   if (!RT.on || c.t.live) return base;
   return [...base.map(v => Math.round(v * 0.45 + 150 * 0.55)), 120];
 }
@@ -823,7 +1026,7 @@ function render() {
   if (!sel) { if (state.cam) setCam(null); camBearing = null; }
   driveCamera(sel);
   overlay.setProps({ layers: [
-    ...baseLayers(), ...lineLayers(),
+    ...baseLayers(), ...isoLayers(), ...lineLayers(), ...accLayers(), ...freqLayers(),
     new SolidPolygonLayer({ id: 'trains', data: cars, getPolygon: c => c.polygon, extruded: true,
       getElevation: c => c.height, getFillColor: c => trainColor(c), pickable: true,
       material: { ambient: 0.7, diffuse: 0.6, shininess: 24, specularColor: [70, 70, 70] } }),
@@ -1081,6 +1284,8 @@ function updateTraficUI() {
 function syncURL() {
   const u = new URL(location.href);
   u.searchParams.delete('gare'); u.searchParams.delete('ligne');
+  u.searchParams.delete('theme');
+  if (state.themeMode !== 'auto') u.searchParams.set('theme', state.themeMode === 'light' ? 'clair' : 'sombre');
   if (state.station != null) u.searchParams.set('gare', slug(STATIONS[state.station].n));
   else if (state.traficOpen && state.traficLine) u.searchParams.set('ligne', state.traficLine.replace('b', 'bis'));
   history.replaceState(null, '', u);
@@ -1145,6 +1350,284 @@ qRes.addEventListener('mousedown', e => { const li = e.target.closest('[data-i]'
 qIn.addEventListener('blur', () => setTimeout(() => { qRes.hidden = true; qIn.setAttribute('aria-expanded', 'false'); }, 120));
 qIn.addEventListener('focus', () => { if (qIn.value.trim()) renderSearch(); });
 
+
+/* ====================================================================================
+   Version 2 : analyses (fréquentation, accessibilité, isochrones) et « voir la rue »
+   ==================================================================================== */
+const EN = STATIONS.map(s => ENRICH[s.z] || {});
+const DT_IDX = { weekday: 0, saturday: 1, sunday: 2 };
+const DT_TXT = ['jour de semaine', 'samedi', 'dimanche'];
+const fmtN = n => Math.round(n).toLocaleString('fr-FR');
+const hourOf = () => Math.floor((state.simTime % 86400) / 3600);
+state.freq = false; state.acc = false; state.iso = null;
+
+/* ---------- Fréquentation : entrées par heure (validations IDFM × profil horaire) ---------- */
+const hourly = (si, h, d) => { const e = EN[si]; return e.v && e.h ? e.v[d] * e.h[d][h] / 1000 : null; };
+let FREQ_REF = 1;
+EN.forEach((e, si) => { if (e.v) for (let d = 0; d < 3; d++) for (let h = 0; h < 24; h++) FREQ_REF = Math.max(FREQ_REF, hourly(si, h, d)); });
+const FREQ_M = 650 / FREQ_REF;   // la station la plus chargée à son heure de pointe : 650 m de haut
+const RAMP = [[255, 224, 138], [255, 159, 26], [232, 65, 44], [155, 27, 90]];
+function rampColor(f) {
+  f = Math.max(0, Math.min(1, f)) * (RAMP.length - 1);
+  const i = Math.min(RAMP.length - 2, Math.floor(f)), t = f - i;
+  return RAMP[i].map((v, k) => Math.round(v + (RAMP[i + 1][k] - v) * t));
+}
+const RANK = new Map(EN.map((e, si) => [si, e.v ? e.v[0] : -1]).filter(x => x[1] >= 0).sort((a, b) => b[1] - a[1]).map(([si], r) => [si, r + 1]));
+let freqTop = null;
+function freqLayers() {
+  if (!state.freq) return [];
+  const h = hourOf(), d = DT_IDX[state.dayType], close = state.zoom >= 14.6;
+  const data = []; freqTop = { v: 0, n: '', h, d };
+  for (const s of visibleStations()) {
+    const v = hourly(s.i, h, d);
+    if (v == null) continue;
+    data.push({ s, v });
+    if (v > freqTop.v) freqTop = { v, n: s.n, h, d };
+  }
+  return [new ColumnLayer({ id: 'freq', data, pickable: true, diskResolution: 20, radius: close ? 26 : 70, extruded: true,
+    getPosition: x => x.s.p, getElevation: x => Math.max(4, x.v * FREQ_M), getFillColor: x => [...rampColor(Math.sqrt(x.v / FREQ_REF) * 1.15), 230],
+    material: { ambient: 0.55, diffuse: 0.6, shininess: 12 }, transitions: { getElevation: 600 },
+    updateTriggers: { getElevation: [h, d], getFillColor: [h, d] } })];
+}
+
+/* ---------- Accessibilité en fauteuil roulant (GTFS IDFM, champ wheelchair_boarding) ---------- */
+// 1 = toutes ses lignes accessibles, 3 = en partie, 2 = non accessible, 0 = inconnu
+function accLevel(si) {
+  const a = EN[si].a; if (!a) return 0;
+  const v = STATIONS[si].l.map(l => a[l] ?? 0);
+  if (v.every(x => x === 1)) return 1;
+  if (v.some(x => x === 1 || x === 3)) return 3;
+  return v.includes(2) ? 2 : 0;
+}
+const ACC = STATIONS.map((s, si) => accLevel(si));
+const ACC_N = { 1: ACC.filter(x => x === 1).length, 3: ACC.filter(x => x === 3).length };
+const ACC_TXT = { 1: 'accessible', 3: 'en partie', 2: 'non accessible', 0: 'inconnu' };
+function accLayers() {
+  if (!state.acc) return [];
+  const close = state.zoom >= 14.6;
+  const data = visibleStations().map(s => ({ s, a: ACC[s.i] }));
+  return [new ScatterplotLayer({ id: 'acc', data, pickable: true,
+    getPosition: x => [x.s.p[0], x.s.p[1], close ? 4 : 0], radiusUnits: 'meters',
+    getRadius: x => x.a === 1 || x.a === 3 ? (close ? 34 : 95) : (close ? 18 : 45), radiusMinPixels: 4, radiusMaxPixels: 22,
+    getFillColor: x => x.a === 1 ? [34, 165, 101, 235] : x.a === 3 ? [230, 160, 20, 235] : [...PAL.stationLine.slice(0, 3), 70],
+    stroked: true, getLineColor: x => x.a === 1 || x.a === 3 ? [255, 255, 255] : [0, 0, 0, 0], lineWidthUnits: 'pixels', getLineWidth: 2,
+    updateTriggers: { getRadius: close, getPosition: close, getFillColor: state.theme } })];
+}
+
+/* ---------- Isochrones : plus courts trajets métro (algorithme CSA) puis marche ---------- */
+const TRANSFER = 180;      // correspondance : 3 min
+const WALK = 1.25;         // marche : 4,5 km/h, en m/s
+const WALK_MAX = 1000;     // 1 km de marche au plus après le métro
+const ISO_MAX = 3600;
+const PAT_ST = new Map();
+STOPS_OF.forEach((list, si) => list.forEach(({ pat, i }) => {
+  if (!PAT_ST.has(pat)) PAT_ST.set(pat, new Int16Array(pat.stops.length).fill(-1));
+  PAT_ST.get(pat)[i] = si;
+}));
+const CONN = {};
+function connections(dt) {
+  if (CONN[dt]) return CONN[dt];
+  const D = DAYS[dt];
+  let n = 0;
+  for (let k = 0; k < D.start.length; k++) n += PROFILES[D.prof[k]].p.stops.length - 1;
+  const dep = new Float64Array(n), arr = new Float64Array(n), from = new Int16Array(n), to = new Int16Array(n), trip = new Int32Array(n);
+  let c = 0;
+  for (let k = 0; k < D.start.length; k++) {
+    const pr = PROFILES[D.prof[k]], st = PAT_ST.get(pr.p), t0 = D.start[k];
+    for (let i = 0; i < pr.p.stops.length - 1; i++, c++) {
+      dep[c] = t0 + pr.dep[i]; arr[c] = t0 + pr.arr[i + 1];
+      from[c] = st ? st[i] : -1; to[c] = st ? st[i + 1] : -1; trip[c] = k;
+    }
+  }
+  const order = Uint32Array.from({ length: n }, (_, i) => i).sort((a, b) => dep[a] - dep[b]);
+  const pick = (A, T) => { const B = new T(n); for (let i = 0; i < n; i++) B[i] = A[order[i]]; return B; };
+  return (CONN[dt] = { n, ntrips: D.start.length, dep: pick(dep, Float64Array), arr: pick(arr, Float64Array),
+    from: pick(from, Int16Array), to: pick(to, Int16Array), trip: pick(trip, Int32Array) });
+}
+function earliestArrivals(src, T0, dt) {
+  const C = connections(dt), best = new Float64Array(STATIONS.length).fill(Infinity), onTrip = new Uint8Array(C.ntrips);
+  best[src] = T0;
+  let lo = 0, hi = C.n;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (C.dep[m] < T0) lo = m + 1; else hi = m; }
+  for (let c = lo; c < C.n; c++) {
+    const d = C.dep[c];
+    if (d > T0 + ISO_MAX) break;
+    const tr = C.trip[c];
+    if (!onTrip[tr]) {
+      const f = C.from[c];
+      if (f < 0 || best[f] + (f === src ? 0 : TRANSFER) > d) continue;
+      onTrip[tr] = 1;
+    }
+    const t = C.to[c];
+    if (t >= 0 && C.arr[c] < best[t]) best[t] = C.arr[c];
+  }
+  return best;
+}
+// grille de 150 m sur Paris et la petite couronne desservie
+const GRID = (() => {
+  let x0 = 180, x1 = -180, y0 = 90, y1 = -90;
+  for (const s of STATIONS) { x0 = Math.min(x0, s.p[0]); x1 = Math.max(x1, s.p[0]); y0 = Math.min(y0, s.p[1]); y1 = Math.max(y1, s.p[1]); }
+  const cell = 150, dy = cell / 111320, dx = cell / (111320 * Math.cos(48.86 * Math.PI / 180));
+  x0 -= 0.015; x1 += 0.015; y0 -= 0.01; y1 += 0.01;
+  const nx = Math.ceil((x1 - x0) / dx), ny = Math.ceil((y1 - y0) / dy);
+  return { x0, y0, dx, dy, nx, ny, cell };
+})();
+const cellPoly = i => { const g = GRID, x = g.x0 + (i % g.nx) * g.dx, y = g.y0 + Math.floor(i / g.nx) * g.dy; return [[x, y], [x + g.dx, y], [x + g.dx, y + g.dy], [x, y + g.dy]]; };
+function computeIso(src) {
+  const T0 = state.simTime, dt = state.dayType, best = earliestArrivals(src, T0, dt), g = GRID;
+  const val = new Float32Array(g.nx * g.ny).fill(Infinity);
+  const kx = 111320 * Math.cos(48.86 * Math.PI / 180), ky = 111320;
+  let n30 = 0;
+  best.forEach((b, si) => {
+    const t = b - T0;
+    if (!(t <= ISO_MAX)) return;
+    if (t <= 1800) n30++;
+    const r = Math.min(WALK_MAX, (ISO_MAX - t) * WALK), p = STATIONS[si].p;
+    const cx0 = Math.max(0, Math.floor((p[0] - r / kx - g.x0) / g.dx)), cx1 = Math.min(g.nx - 1, Math.floor((p[0] + r / kx - g.x0) / g.dx));
+    const cy0 = Math.max(0, Math.floor((p[1] - r / ky - g.y0) / g.dy)), cy1 = Math.min(g.ny - 1, Math.floor((p[1] + r / ky - g.y0) / g.dy));
+    for (let cy = cy0; cy <= cy1; cy++) for (let cx = cx0; cx <= cx1; cx++) {
+      const ddx = (g.x0 + (cx + .5) * g.dx - p[0]) * kx, ddy = (g.y0 + (cy + .5) * g.dy - p[1]) * ky, dist = Math.hypot(ddx, ddy);
+      if (dist > r) continue;
+      const v = t + dist / WALK, i = cy * g.nx + cx;
+      if (v < val[i]) val[i] = v;
+    }
+  });
+  const cells = [];
+  for (let i = 0; i < val.length; i++) if (val[i] <= ISO_MAX) cells.push({ i, v: val[i], poly: cellPoly(i) });
+  state.iso = { src, T0, dt, best, cells, n30 };
+  const l = document.getElementById('iso-legend');
+  document.getElementById('iso-title').textContent = `Depuis ${STATIONS[src].n}`;
+  document.getElementById('iso-sub').textContent = `Départ ${fmtHM(T0)} · ${DT_TXT[DT_IDX[dt]]} · ${n30 - 1} stations à moins de 30 min`;
+  if (l.hidden && innerWidth <= 760) { const c = document.getElementById('control'); c.classList.add('collapsed'); document.getElementById('collapse').textContent = 'Ouvrir'; }
+  l.hidden = false;
+  document.getElementById('b-iso').setAttribute('aria-pressed', String(state.station === src));
+}
+const ISO_BANDS = [[900, [46, 204, 113]], [1800, [199, 217, 58]], [2700, [243, 156, 18]], [3600, [231, 76, 60]]];
+const isoColor = v => (ISO_BANDS.find(b => v <= b[0]) || ISO_BANDS[3])[1];
+function isoLayers() {
+  const I = state.iso; if (!I) return [];
+  const a = state.theme === 'light' ? 120 : 105;
+  return [new SolidPolygonLayer({ id: 'iso', data: I.cells, getPolygon: c => c.poly, getFillColor: c => [...isoColor(c.v), a], pickable: true,
+    updateTriggers: { getFillColor: [I.T0, I.src, state.theme] } })];
+}
+function closeIso() { state.iso = null; document.getElementById('iso-legend').hidden = true; document.getElementById('b-iso').setAttribute('aria-pressed', 'false'); }
+document.getElementById('iso-close').addEventListener('click', closeIso);
+document.getElementById('b-iso').addEventListener('click', () => {
+  if (state.station == null) return;
+  if (state.iso && state.iso.src === state.station) closeIso(); else computeIso(state.station);
+});
+
+/* ---------- Boutons d'analyse et indications ---------- */
+function toggleBtn(id, key) {
+  const b = document.getElementById(id);
+  b.addEventListener('click', () => { state[key] = !state[key]; b.setAttribute('aria-pressed', String(state[key])); updateHints(); });
+}
+toggleBtn('t-freq', 'freq'); toggleBtn('t-acc', 'acc');
+function updateHints() {
+  const fh = document.getElementById('freq-hint');
+  fh.hidden = document.getElementById('freq-ramp').hidden = !state.freq;
+  if (state.freq && freqTop) {
+    fh.innerHTML = `Entrées entre <b>${freqTop.h} h et ${(freqTop.h + 1) % 24} h</b> (${DT_TXT[freqTop.d]}). La plus chargée : <b>${esc(freqTop.n || '–')}</b>, ≈ ${fmtN(freqTop.v)} entrées. Validations IDFM, avr.–juin 2026.`;
+  }
+  const ah = document.getElementById('acc-hint');
+  ah.hidden = !state.acc;
+  if (state.acc) ah.innerHTML = `<span class="ok">●</span> <b>${ACC_N[1]}</b> stations accessibles en fauteuil, <span class="part">●</span> <b>${ACC_N[3]}</b> en partie, sur ${STATIONS.length}. Source : GTFS IDFM.`;
+}
+
+/* ---------- Fiche gare : fréquentation et accessibilité ---------- */
+function sparkSVG(si, d) {
+  const e = EN[si]; if (!e.h) return '';
+  const row = e.h[d], max = Math.max(...row) || 1, h = hourOf();
+  const bars = row.map((v, i) => `<rect x="${i * 10 + 1}" y="${40 - v / max * 38}" width="8" height="${v / max * 38}" rx="1.5" fill="${i === h ? '#ffcd00' : 'currentColor'}" opacity="${i === h ? 1 : .45}"/>`).join('');
+  return `<svg class="spark" viewBox="0 0 240 42" preserveAspectRatio="none" role="img" aria-label="Profil horaire des entrées">${bars}</svg>`;
+}
+function factsHTML(si) {
+  const e = EN[si], d = DT_IDX[state.dayType], parts = [];
+  if (e.v) {
+    const v = hourly(si, hourOf(), d);
+    parts.push(`<div class="facts"><h3>Fréquentation</h3><div class="big">${fmtN(e.v[d])}<small>entrées par ${DT_TXT[d]}</small></div>` +
+      `<div class="hint">${RANK.has(si) ? `${RANK.get(si)}<sup>e</sup> station sur ${RANK.size} en semaine · ` : ''}≈ ${fmtN(v)} entre ${hourOf()} h et ${(hourOf() + 1) % 24} h</div>` +
+      `<div style="color:var(--muted)">${sparkSVG(si, d)}</div><div class="hint">Profil de 0 h à 23 h · médiane des validations RATP, avr.–juin 2026</div></div>`);
+  }
+  if (e.a) {
+    const lines = STATIONS[si].l.map(l => { const a = e.a[l] ?? 0;
+      return `<span><span class="mini" style="background:${lineHex[l]};color:${textOn(lineColor[l])}">${LABEL(l)}</span><span class="${a === 1 ? 'ok' : a === 3 ? 'part' : 'ko'}">${a === 1 ? '♿ accessible' : a === 3 ? 'en partie' : a === 2 ? 'non accessible' : 'non renseigné'}</span></span>`; }).join('');
+    parts.push(`<div class="facts"><h3>Accessibilité fauteuil</h3><div class="acc">${lines}</div><div class="hint">D'après le GTFS IDFM. Vérifiez l'état des ascenseurs avant de partir.</div></div>`);
+  }
+  return parts.join('');
+}
+
+/* ---------- Voir la rue : photo Panoramax la plus proche, sinon Google Street View ---------- */
+let pannellumReady = null;
+function loadPannellum() {
+  if (pannellumReady) return pannellumReady;
+  pannellumReady = new Promise((ok, ko) => {
+    const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.css';
+    const js = document.createElement('script'); js.src = 'https://cdnjs.cloudflare.com/ajax/libs/pannellum/2.5.6/pannellum.js';
+    js.onload = ok; js.onerror = ko; document.head.append(css, js);
+  });
+  return pannellumReady;
+}
+let panoViewer = null, streetReq = 0;
+async function openStreet(si) {
+  const s = STATIONS[si], box = document.getElementById('street'), pano = document.getElementById('pano'), req = ++streetReq;
+  const [lon, lat] = s.p;
+  document.getElementById('st-title').textContent = s.n;
+  document.getElementById('st-sub').textContent = 'Recherche d’une photo…';
+  document.getElementById('st-credit').textContent = '';
+  document.getElementById('st-google').href = `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
+  const pmx = document.getElementById('st-pmx'); pmx.hidden = true;
+  if (panoViewer) { try { panoViewer.destroy(); } catch (e) { /* déjà détruit */ } panoViewer = null; }
+  pano.innerHTML = '';
+  box.hidden = false;
+  let f = null;
+  try {
+    const r = await fetch(`https://api.panoramax.xyz/api/search?place_position=${lon.toFixed(6)},${lat.toFixed(6)}&place_distance=0-80&limit=10`);
+    const feats = ((await r.json()).features || []).map(x => {
+      const [x0, y0] = x.geometry.coordinates;
+      return { x, dist: Math.hypot((x0 - lon) * 73300, (y0 - lat) * 111320), is360: (x.properties['pers:interior_orientation'] || {}).field_of_view === 360 };
+    });
+    // on préfère une photo à 360°, puis la plus proche
+    feats.sort((a, b) => (b.is360 - a.is360) || a.dist - b.dist);
+    f = feats[0] || null;
+  } catch (e) { f = null; }
+  if (req !== streetReq) return;
+  if (!f) {
+    document.getElementById('st-sub').textContent = 'Pas de photo libre à moins de 80 m';
+    pano.innerHTML = '<div class="msg">Aucune photo Panoramax près de cette station pour l’instant.<br>Ouvrez Google Street View avec le bouton ci-dessous.</div>';
+    return;
+  }
+  const P = f.x.properties, img = f.x.assets.sd.href, [px, py] = f.x.geometry.coordinates;
+  const when = P.datetime ? new Date(P.datetime).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '';
+  document.getElementById('st-sub').textContent = `Photo ${f.is360 ? 'à 360°' : ''} à ${Math.round(f.dist)} m · ${when}`;
+  const who = (P.providers || []).map(p => p.name).filter(Boolean).join(', ');
+  document.getElementById('st-credit').textContent = `Panoramax${who ? ' · ' + who : ''} · licence ${P.license || 'ouverte'}`;
+  pmx.href = `https://api.panoramax.xyz/#focus=pic&pic=${f.x.id}&map=18/${py}/${px}`; pmx.hidden = false;
+  // cap de la photo vers la station
+  const brg = Math.atan2((lon - px) * Math.cos(lat * Math.PI / 180), lat - py) * 180 / Math.PI;
+  if (f.is360) {
+    try {
+      await loadPannellum();
+      if (req !== streetReq) return;
+      panoViewer = pannellum.viewer('pano', { type: 'equirectangular', panorama: img, autoLoad: true, crossOrigin: 'anonymous',
+        yaw: ((brg - (P['view:azimuth'] || 0) + 540) % 360) - 180, hfov: 105, showFullscreenCtrl: true, compass: false });
+      return;
+    } catch (e) { /* visionneuse indisponible : simple image */ }
+  }
+  pano.innerHTML = `<img src="${img}" alt="Vue de la rue près de la station ${esc(s.n)}">`;
+}
+function closeStreet() { streetReq++; document.getElementById('street').hidden = true; if (panoViewer) { try { panoViewer.destroy(); } catch (e) { /* rien */ } panoViewer = null; } }
+document.getElementById('st-close').addEventListener('click', closeStreet);
+document.getElementById('b-street').addEventListener('click', () => { if (state.station != null) openStreet(state.station); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('street').hidden) closeStreet(); });
+
+/* ---------- Panneau réductible sur mobile ---------- */
+document.getElementById('collapse').addEventListener('click', e => {
+  const c = document.getElementById('control'), col = c.classList.toggle('collapsed');
+  e.currentTarget.textContent = col ? 'Ouvrir' : 'Réduire';
+  e.currentTarget.setAttribute('aria-expanded', String(!col));
+});
+
 /* ---------- Boucle ---------- */
 let last = performance.now();
 function frame(now) {
@@ -1155,7 +1638,13 @@ function frame(now) {
     if (state.simTime > 27 * 3600) state.simTime = 5 * 3600; // la nuit passe : retour au premier métro
   }
   render();
-  if (state.station != null && now - lastBoard > 1000) { lastBoard = now; renderStation(); }
+  if (now - lastBoard > 1000) {
+    lastBoard = now;
+    if (state.station != null) renderStation();
+    applyTheme();
+    if (state.iso && (Math.abs(state.simTime - state.iso.T0) >= 60 || state.iso.dt !== state.dayType)) computeIso(state.iso.src);
+    if (state.freq) updateHints();
+  }
   requestAnimationFrame(frame);
 }
 let lastBoard = 0;

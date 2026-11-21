@@ -79,7 +79,11 @@ footer { border-top: 1px solid var(--rule); margin-top: 44px; padding-top: 18px;
       <li><strong>La recherche</strong> d'une gare ou d'une ligne, et un <strong>lien partageable</strong> pour chaque gare (<code>?gare=chatelet</code>) et chaque ligne (<code>?ligne=14</code>).</li>
       <li><strong>Le suivi d'une rame</strong> et la <strong>vue cabine</strong>, qui place la caméra dans l'axe de la voie.</li>
       <li><strong>Une horloge réglable</strong> (×1 à ×300) et le choix du type de jour, pour rejouer une journée sur les horaires théoriques.</li>
+      <li><strong>Trois analyses</strong> (version 2) : la fréquentation des stations, leur accessibilité en fauteuil roulant, et les isochrones depuis une gare. Elles sont détaillées plus bas.</li>
+      <li><strong>Voir la rue</strong> : la photo de rue libre la plus proche de la station, à 360° quand elle existe.</li>
+      <li><strong>Une apparence claire ou sombre</strong>, ou automatique : clair le jour et sombre la nuit, selon le lever et le coucher du soleil à l'heure affichée.</li>
     </ul>
+    <p class="note">La <a href="v1/">version 1</a> reste en ligne telle qu'elle était, pour comparer.</p>
   </section>
 
   <section>
@@ -107,7 +111,19 @@ footer { border-top: 1px solid var(--rule); margin-top: 44px; padding-top: 18px;
   </section>
 
   <section>
-    <h2><span class="n">3</span>Les données</h2>
+    <h2><span class="n">3</span>Les analyses</h2>
+    <h3>Fréquentation</h3>
+    <p>Chaque station porte une colonne dont la hauteur est le nombre d'entrées <em>pendant l'heure affichée</em> : avec l'horloge accélérée, on voit la ville se remplir le matin et se vider le soir. Le calcul croise deux jeux de données d'Île-de-France Mobilités : le nombre de validations par jour (on garde la médiane des jours de semaine, des samedis et des dimanches d'avril à juin 2026) et la part de chaque heure dans la journée, station par station.</p>
+    <h3>Accessibilité en fauteuil roulant</h3>
+    <p>Le GTFS indique, arrêt par arrêt, si l'on peut y monter en fauteuil roulant. La carte le lit ligne par ligne : une station est « accessible » si toutes ses lignes le sont, « en partie » si seulement certaines le sont. Le constat est net : en dehors de la ligne 14 et de quelques prolongements récents, le métro parisien n'est pas accessible.</p>
+    <h3>Isochrones</h3>
+    <p>Depuis une gare et à l'heure affichée, la carte calcule l'heure d'arrivée la plus tôt dans toutes les autres stations, avec l'algorithme <em>Connection Scan</em> sur les horaires théoriques (3 minutes par correspondance). Elle prolonge ensuite à pied, à 4,5 km/h et sur 1 km au plus, sur une grille de 150 m. Les couleurs donnent le temps porte à porte : moins de 15, 30, 45 et 60 minutes.</p>
+    <h3>Voir la rue</h3>
+    <p>La photo vient de <a href="https://panoramax.fr/">Panoramax</a>, la photothèque de rue libre soutenue notamment par l'IGN et OpenStreetMap France. La carte cherche la photo la plus proche à moins de 80 m, de préférence à 360°, et l'oriente vers la station. S'il n'y en a pas, un lien ouvre Google Street View au même endroit.</p>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>Les données</h2>
     <p>Toutes les données sont publiques et gratuites.</p>
     <div class="wrap">
     <table class="table">
@@ -118,6 +134,9 @@ footer { border-top: 1px solid var(--rule); margin-top: 44px; padding-top: 18px;
         <tr><td>Heures de passage en temps réel</td><td>API PRIM « Prochains passages – estimated timetable » (format SIRI), ligne par ligne</td><td>Chaque minute</td></tr>
         <tr><td>Perturbations</td><td>API PRIM « Perturbations » (disruptions bulk), filtrée sur le métro et sur les périodes en cours</td><td>Toutes les 2 minutes</td></tr>
         <tr><td>Ville en 3D, rues, Seine, bois</td><td>OpenStreetMap, tuiles vectorielles OpenFreeMap (schéma OpenMapTiles), avec la hauteur des bâtiments</td><td>À l'affichage</td></tr>
+        <tr><td>Fréquentation</td><td>Open data Île-de-France Mobilités : validations par jour et profils horaires par type de jour, réseau ferré (2e trimestre 2026)</td><td>À chaque reconstruction</td></tr>
+        <tr><td>Accessibilité</td><td>GTFS Île-de-France Mobilités, champ <code>wheelchair_boarding</code> des arrêts</td><td>À chaque reconstruction</td></tr>
+        <tr><td>Photos de rue</td><td>Panoramax (API ouverte, photos sous licence ouverte), affichées avec Pannellum</td><td>À la demande</td></tr>
         <tr><td>Fond de secours</td><td>OpenStreetMap via l'API Overpass (eau, bois, limites communales), embarqué dans la page</td><td>À chaque reconstruction</td></tr>
       </tbody>
     </table>
@@ -125,7 +144,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 44px; padding-top: 18px;
   </section>
 
   <section>
-    <h2><span class="n">4</span>La méthode</h2>
+    <h2><span class="n">5</span>La méthode</h2>
     <ol class="steps">
       <li><strong>Le réseau.</strong> Les tronçons entre gares sont regroupés en graphe par ligne (Python, NetworkX), puis assemblés en itinéraires de terminus à terminus, branches comprises (lignes 7 et 13).</li>
       <li><strong>Les horaires.</strong> Le GTFS est lu en flux pour ne garder que le métro. Les trajets sont compressés en « motifs » (une suite de gares sur un tracé) et en profils horaires réutilisables : toute la semaine tient dans la page.</li>
@@ -137,7 +156,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 44px; padding-top: 18px;
   </section>
 
   <section>
-    <h2><span class="n">5</span>Le relais temps réel</h2>
+    <h2><span class="n">6</span>Le relais temps réel</h2>
     <p>L'API PRIM demande une clé personnelle, qui ne doit jamais apparaître dans une page web. Un petit relais fait donc l'intermédiaire :</p>
     <ul>
       <li><strong>En ligne</strong>, un <strong>Cloudflare Worker</strong> garde la clé en secret, interroge PRIM ligne par ligne (en gardant chaque ligne une minute en mémoire pour ménager le quota) et ne renvoie à la carte qu'un résumé léger.</li>
@@ -147,19 +166,22 @@ footer { border-top: 1px solid var(--rule); margin-top: 44px; padding-top: 18px;
   </section>
 
   <section>
-    <h2><span class="n">6</span>Les limites</h2>
+    <h2><span class="n">7</span>Les limites</h2>
     <ul>
-      <li>Les horaires théoriques sont ceux de la semaine du 20 octobre 2026 : il faut relancer la chaîne de traitement pour les mettre à jour.</li>
+      <li>Les horaires théoriques sont ceux de la semaine du 24 novembre 2026 : il faut relancer la chaîne de traitement pour les mettre à jour.</li>
       <li>Si une rame perd du temps entre deux gares, la carte ne le sait qu'à l'annonce suivante.</li>
       <li>Le flux PRIM du métro donne les heures annoncées, pas les heures prévues : il ne permet pas de mesurer un retard comme pour un train. Dans le métro, l'information utile est surtout l'état du trafic.</li>
+      <li>Les isochrones ne comptent ni l'attente du premier métro au-delà de l'horaire, ni les couloirs de correspondance réels : c'est un ordre de grandeur.</li>
+      <li>La fréquentation compte les entrées aux portiques du métro (RATP), pas les voyageurs en correspondance ni ceux du RER SNCF.</li>
+      <li>L'accessibilité vient du GTFS ; l'état des ascenseurs en direct n'est pas encore affiché.</li>
       <li>Le RER et le Transilien ne sont pas encore représentés.</li>
     </ul>
   </section>
 
   <section>
-    <h2><span class="n">7</span>Inspiration et outils</h2>
+    <h2><span class="n">8</span>Inspiration et outils</h2>
     <p>L'idée vient de <a href="https://minitokyo3d.com/">Mini Tokyo 3D</a> d'Akihiko Kusanagi, la carte 3D des transports de Tokyo en temps réel. Mini Paris 3D n'en reprend pas le code : il en transpose le principe au métro parisien. L'info trafic, la fiche d'une rame et la distinction entre le sûr et l'estimé s'inspirent aussi des cartes de trains en direct comme <a href="https://tchouu.fr/">Tchouu</a>.</p>
-    <p>Outils : Python (NetworkX) pour la chaîne de données, <a href="https://maplibre.org/">MapLibre GL JS</a> et <a href="https://deck.gl/">deck.gl</a> pour le rendu, <a href="https://openfreemap.org/">OpenFreeMap</a> pour le fond de carte, Cloudflare Workers pour le relais. Code source : <a href="https://github.com/mawa399/mini-paris-3d-metro">github.com/mawa399/mini-paris-3d-metro</a>.</p>
+    <p>Outils : Python (NetworkX) pour la chaîne de données, <a href="https://maplibre.org/">MapLibre GL JS</a> et <a href="https://deck.gl/">deck.gl</a> pour le rendu, <a href="https://openfreemap.org/">OpenFreeMap</a> pour le fond de carte, <a href="https://pannellum.org/">Pannellum</a> pour les photos à 360°, Cloudflare Workers pour le relais. Code source : <a href="https://github.com/mawa399/mini-paris-3d-metro">github.com/mawa399/mini-paris-3d-metro</a>.</p>
   </section>
 
   <footer>
