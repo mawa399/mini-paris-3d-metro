@@ -20,7 +20,7 @@ théoriques officiels d'Île-de-France Mobilités, ou en temps réel grâce à l
 - **Apparence** claire, sombre ou automatique (selon le lever et le coucher du soleil à l'heure affichée), avec `?theme=clair` ou `?theme=sombre` dans le lien.
 - **Horaires mis à jour** (semaine du 24 novembre 2026).
 
-La version 1 est conservée dans le dossier [`v1/`](v1/) et sous l'étiquette Git `v1.0`.
+La version 1 est conservée dans le dossier [`v1/`](v1/) et dans la branche Git [`version-1`](https://github.com/mawa399/mini-paris-3d-metro/tree/version-1).
 
 ## Fonctionnalités
 

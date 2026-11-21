@@ -1599,7 +1599,7 @@ async function openStreet(si) {
   }
   const P = f.x.properties, img = f.x.assets.sd.href, [px, py] = f.x.geometry.coordinates;
   const when = P.datetime ? new Date(P.datetime).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }) : '';
-  document.getElementById('st-sub').textContent = `Photo ${f.is360 ? 'à 360°' : ''} à ${Math.round(f.dist)} m · ${when}`;
+  document.getElementById('st-sub').textContent = `Photo${f.is360 ? ' à 360°' : ''} à ${Math.round(f.dist)} m · ${when}`;
   const who = (P.providers || []).map(p => p.name).filter(Boolean).join(', ');
   document.getElementById('st-credit').textContent = `Panoramax${who ? ' · ' + who : ''} · licence ${P.license || 'ouverte'}`;
   pmx.href = `https://api.panoramax.xyz/#focus=pic&pic=${f.x.id}&map=18/${py}/${px}`; pmx.hidden = false;
