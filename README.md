@@ -18,13 +18,27 @@ théoriques officiels d'Île-de-France Mobilités, ou en temps réel grâce à l
 - **Tableau des prochains départs** : un clic sur une gare affiche, ligne par ligne et par direction, les deux prochains passages (temps réel PRIM quand il est disponible, sinon horaires théoriques).
 - **Suivre une rame** ou passer en **vue cabine** depuis sa fiche : la caméra accompagne la rame le long de sa ligne.
 - **Horaires officiels** : environ 11 600 trajets un jour de semaine, 9 900 le samedi et 8 100 le dimanche, extraits du GTFS IDFM.
-- **Temps réel** : avec le serveur local, chaque rame est placée d'après son heure de passage annoncée par PRIM à la prochaine gare.
+- **Temps réel**, en ligne comme en local : chaque rame est placée d'après son heure de passage annoncée par PRIM à la prochaine gare.
 - **Horloge** réglable (×1 à ×300), choix du type de jour (semaine, samedi, dimanche), filtre par ligne.
 - **Fond de carte de secours embarqué** (Seine, Marne, canaux, bois, limites communales) : sans accès aux tuiles, la page fonctionne toujours.
 
 ## Lancer la carte
 
-### Avec le temps réel (recommandé)
+### En ligne
+
+La page publiée sur GitHub Pages reçoit le temps réel par un petit relais
+[Cloudflare Worker](relais-cloudflare/worker.js) : il interroge PRIM avec une clé gardée en secret côté
+Cloudflare (jamais dans la page), garde chaque ligne en mémoire 60 s et renvoie le même JSON que le
+serveur local. Si le relais ne répond pas, la carte reste sur les horaires théoriques.
+
+Pour déployer ton propre relais : crée un Worker à partir de `relais-cloudflare/worker.js`
+(ou `npx wrangler deploy` dans ce dossier), ajoute le secret `PRIM_API_KEY`, puis indique son adresse
+dans `RELAIS_URL` (scripts/template.html) et reconstruis `index.html`.
+
+### En local avec le temps réel
+
+Sous Windows, double-clique sur `lancer.bat` : il trouve Python, demande la clé PRIM la première fois
+et ouvre la carte.
 
 Il faut Python 3.9 ou plus, sans aucune bibliothèque à installer, et une clé API PRIM gratuite
 (compte sur [prim.iledefrance-mobilites.fr](https://prim.iledefrance-mobilites.fr/)).
