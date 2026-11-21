@@ -31,7 +31,7 @@ Il faut Python 3.9 ou plus, sans aucune bibliothèque à installer, et une clé 
 
 ```bash
 cp .env.example .env        # puis colle ta clé PRIM dans .env
-python serveur.py           # ouvre ensuite http://localhost:8000
+python serveur.py           # ouvre ensuite http://localhost:8765
 ```
 
 Le serveur interroge PRIM pour les 16 lignes en tâche de fond (un tour complet par minute par défaut,

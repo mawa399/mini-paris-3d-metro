@@ -1,13 +1,13 @@
 """Serveur local de Mini Paris 3D avec le temps réel PRIM.
 
-- sert la carte (index.html) sur http://localhost:8000
+- sert la carte (index.html) sur http://localhost:8765
 - interroge l'API PRIM « estimated-timetable » ligne par ligne, en tâche de fond
 - expose le résultat simplifié sur /api/temps-reel
 
 La clé PRIM est lue dans la variable d'environnement PRIM_API_KEY ou dans un fichier .env
 (ligne PRIM_API_KEY=...). Ce fichier est exclu du dépôt par .gitignore.
 
-Usage : python serveur.py [--port 8000] [--intervalle 60]
+Usage : python serveur.py [--port 8765] [--intervalle 60]
 Bibliothèque standard uniquement, aucune installation nécessaire.
 """
 import argparse, json, os, threading, time, urllib.request, urllib.error
@@ -27,7 +27,7 @@ def load_key():
             if line.strip().startswith('PRIM_API_KEY='):
                 key = line.split('=', 1)[1].strip().strip('"\'')
     if not key:
-        raise SystemExit("Clé PRIM manquante : crée un fichier .env avec la ligne PRIM_API_KEY=ta_cle")
+        print("Clé PRIM absente : la carte tourne avec les horaires théoriques (ajoute PRIM_API_KEY=ta_cle dans .env pour le temps réel).")
     return key
 
 
@@ -118,10 +118,13 @@ class Handler(SimpleHTTPRequestHandler):
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
-    ap.add_argument('--port', type=int, default=8000)
+    ap.add_argument('--port', type=int, default=8765)
     ap.add_argument('--intervalle', type=float, default=60, help='secondes pour un tour complet des 16 lignes')
     a = ap.parse_args()
     key = load_key()
-    threading.Thread(target=poller, args=(key, a.intervalle), daemon=True).start()
-    print(f'Mini Paris 3D : http://localhost:{a.port}  (temps réel PRIM, tour complet toutes les {a.intervalle:.0f} s)')
+    if key:
+        threading.Thread(target=poller, args=(key, a.intervalle), daemon=True).start()
+    mode = f'temps réel PRIM, tour complet toutes les {a.intervalle:.0f} s' if key else 'horaires théoriques'
+    print(f'Mini Paris 3D : http://localhost:{a.port}  ({mode})')
+    print('Laisse cette fenêtre ouverte. Ctrl+C pour arrêter.')
     ThreadingHTTPServer(('127.0.0.1', a.port), Handler).serve_forever()
