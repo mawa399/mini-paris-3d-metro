@@ -44,13 +44,15 @@ function heureParis(ms) {
   return `${p.year}${p.month}${p.day}T${p.hour}${p.minute}${p.second}`;
 }
 const ENTITES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
+// (écrit sans barre oblique inverse pour pouvoir être collé tel quel dans l'éditeur Cloudflare)
+const NL = String.fromCharCode(10);
 function texte(html) {
   return (html || '')
-    .replace(/<br\s*\/?>/gi, '\n').replace(/<\/p>/gi, '\n').replace(/<[^>]+>/g, '')
+    .replace(/<br[ ]*[/]?>/gi, NL).replace(/<[/]p>/gi, NL).replace(/<[^>]+>/g, '')
     .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)))
-    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(+d))
+    .replace(/&#([0-9]+);/g, (_, d) => String.fromCodePoint(+d))
     .replace(/&([a-z]+);/gi, (m, n) => ENTITES[n.toLowerCase()] ?? m)
-    .replace(/\n{3,}/g, '\n\n').trim();
+    .replace(new RegExp(NL + '{3,}', 'g'), NL + NL).trim();
 }
 // ne garde que les perturbations du métro actives maintenant
 function simplifierTrafic(bulk, now) {
