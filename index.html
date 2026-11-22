@@ -1155,8 +1155,15 @@ let rtFirst = true;
 const RELAIS_URL = 'https://mini-paris-3d-temps-reel.mawadiaw1.workers.dev';   // relais Cloudflare (relais-cloudflare/worker.js)
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RT_URL = LOCAL ? '/api/temps-reel' : (RELAIS_URL ? RELAIS_URL.replace(/\/$/, '') + '/api/temps-reel' : null);
+// Économie du quota PRIM : on n'interroge le relais que si la carte est visible et utilisée
+// (onglet masqué ou 15 min sans interaction : pause ; le moindre geste relance).
+const RT_INACTIF = 15 * 60_000;
+let rtDernierGeste = Date.now(), rtTimer = null, rtPause = false;
+function rtPlanifier(ms) { clearTimeout(rtTimer); rtTimer = setTimeout(pollRealtime, ms); }
 async function pollRealtime() {
   if (!RT_URL) return;
+  if (document.hidden || Date.now() - rtDernierGeste > RT_INACTIF) { rtPause = true; updateLiveStatus(); return; }
+  rtPause = false;
   try {
     const r = await fetch(RT_URL, { cache: 'no-store' });
     if (!r.ok) throw new Error(r.status);
@@ -1166,19 +1173,27 @@ async function pollRealtime() {
     updateTraficUI();
     document.getElementById('livebar').hidden = false;
     if (rtFirst && Object.keys(j.lines).length) { rtFirst = false; setLive(true); }
-    // le relais en ligne remplit les 16 lignes par paquets de 4 : on rappelle vite au démarrage
-    setTimeout(pollRealtime, Object.keys(j.lines).length < 16 ? 4000 : 15000);
+    // le relais en ligne remplit les 16 lignes par paquets de 4 : on rappelle vite au démarrage,
+    // ensuite une fois par minute (le relais ne relit PRIM que lorsque ses données ont vieilli)
+    rtPlanifier(Object.keys(j.lines).length < 16 && !(j.relais && j.relais.pause) ? 4000 : 60000);
   } catch (e) {
     // ni serveur local ni relais joignable : on reste sur les horaires théoriques
-    if (RT.available) setTimeout(pollRealtime, 30000);
+    if (RT.available) rtPlanifier(60000);
   }
 }
+function rtReprendre() {
+  rtDernierGeste = Date.now();
+  if (rtPause && !document.hidden) { rtPause = false; pollRealtime(); }
+}
+['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, rtReprendre, { passive: true }));
+document.addEventListener('visibilitychange', () => { if (!document.hidden) rtReprendre(); });
 pollRealtime();
 function updateLiveStatus() {
   if (!RT.available || !RT.data) return;
   const n = Object.values(RT.data.lines).filter(js => js.length).length;
   const age = RT.data.updated ? Math.round((Date.now() - RT.data.updated) / 1000) : null;
-  liveStatus.textContent = n ? `${n}/16 lignes · maj il y a ${age} s` : 'connexion à PRIM…';
+  const quand = age == null ? '' : age < 90 ? `il y a ${age} s` : `il y a ${Math.round(age / 60)} min`;
+  liveStatus.textContent = rtPause ? 'en pause (carte inactive)' : n ? `${n}/16 lignes · maj ${quand}` : 'connexion à PRIM…';
 }
 setDay(state.dayType);
 

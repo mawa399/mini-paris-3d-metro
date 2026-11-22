@@ -11,8 +11,14 @@
  * La clé PRIM n'est jamais dans ce code : elle est stockée dans le secret PRIM_API_KEY
  * du Worker (Settings › Variables and Secrets).
  *
- * Pour ménager le quota PRIM et le temps de calcul du Worker, chaque ligne est gardée
- * en mémoire 60 s et au plus 4 lignes périmées sont rafraîchies par requête.
+ * Économie du quota PRIM (1 000 requêtes par jour pour l'API « par ligne ») :
+ * - une ligne n'est relue que si quelqu'un regarde la carte (aucune requête en tâche de fond) ;
+ * - chaque ligne est gardée en mémoire 10 min, puis 20 min passé 500 appels dans la journée,
+ *   puis 45 min passé 800 appels ; au-delà de 900 appels, plus aucune requête jusqu'au lendemain ;
+ * - au plus 4 lignes périmées sont rafraîchies par requête ;
+ * - si PRIM répond 429 (quota atteint), le relais s'arrête d'interroger PRIM pendant 1 h ;
+ * - l'info trafic (quota séparé) est relue toutes les 5 min.
+ * Les compteurs vivent dans la mémoire du Worker : ils repartent à zéro si Cloudflare le relance.
  *
  * La correspondance quais -> gares (realtime_refs.json) est lue une fois sur GitHub Pages.
  */
@@ -28,12 +34,17 @@ async function chargerRefs() {
 }
 const ORIGINES = ['https://mawa399.github.io', 'http://localhost:8765', 'http://127.0.0.1:8765'];
 const PRIM = 'https://prim.iledefrance-mobilites.fr/marketplace/estimated-timetable?LineRef=STIF:Line::';
-const TTL = 60_000;          // durée de vie d'une ligne en mémoire
 const MAJ_PAR_REQUETE = 4;   // lignes rafraîchies au plus par requête
+const PLAFOND_JOUR = 900;    // appels PRIM « par ligne » au plus par jour (quota : 1 000)
+const PAUSE_429 = 3_600_000; // pause après un refus de PRIM (quota atteint)
+// durée de vie d'une ligne en mémoire, allongée à mesure que le quota du jour se consomme
+const ttlLigne = n => (n < 500 ? 10 : n < 800 ? 20 : 45) * 60_000;
+let compteur = { jour: '', n: 0 };   // appels PRIM « par ligne » du jour (heure de Paris)
+let pauseLignes = 0, pauseTrafic = 0; // pas d'appel PRIM avant ces instants
 
 const memoire = new Map();   // code -> { t, journeys, error }
 const TRAFIC_URL = 'https://prim.iledefrance-mobilites.fr/marketplace/disruptions_bulk/disruptions/v2';
-const TRAFIC_TTL = 120_000;
+const TRAFIC_TTL = 300_000;
 let trafic = { t: 0, data: null, error: null };
 
 // heure de Paris au format des périodes IDFM : 20261121T143000
@@ -87,10 +98,11 @@ function simplifierTrafic(bulk, now) {
   return { updated: now, lines };
 }
 async function rafraichirTrafic(key, now) {
-  if (now - trafic.t < TRAFIC_TTL) return;
+  if (now - trafic.t < TRAFIC_TTL || now < pauseTrafic) return;
   trafic.t = now;
   try {
     const r = await fetch(TRAFIC_URL, { headers: { apikey: key, Accept: 'application/json' } });
+    if (r.status === 429) pauseTrafic = now + PAUSE_429;
     if (!r.ok) throw new Error('HTTP ' + r.status);
     trafic = { t: now, data: simplifierTrafic(await r.json(), now), error: null };
   } catch (e) {
@@ -104,7 +116,9 @@ function quayName(ref) {
 }
 
 async function fetchLine(code, key) {
+  compteur.n++;
   const r = await fetch(PRIM + code + ':', { headers: { apikey: key, Accept: 'application/json' } });
+  if (r.status === 429) pauseLignes = Date.now() + PAUSE_429;
   if (!r.ok) throw new Error('HTTP ' + r.status);
   const data = await r.json();
   const frames = data.Siri.ServiceDelivery.EstimatedTimetableDelivery[0].EstimatedJourneyVersionFrame || [];
@@ -153,11 +167,15 @@ export default {
     try { await chargerRefs(); } catch (e) { return json({ error: String(e.message || e) }, 502); }
 
     const now = Date.now();
+    const jour = heureParis(now).slice(0, 8);
+    if (compteur.jour !== jour) compteur = { jour, n: 0 };
+    const ttl = ttlLigne(compteur.n);
+    const possible = now < pauseLignes ? 0 : Math.max(0, Math.min(MAJ_PAR_REQUETE, PLAFOND_JOUR - compteur.n));
     const perimees = Object.keys(LINES)
       .map(code => [code, (memoire.get(code) || { t: 0 }).t])
-      .filter(([, t]) => now - t > TTL)
+      .filter(([, t]) => now - t > ttl)
       .sort((a, b) => a[1] - b[1])
-      .slice(0, MAJ_PAR_REQUETE)
+      .slice(0, possible)
       .map(([code]) => code);
 
     const majTrafic = rafraichirTrafic(env.PRIM_API_KEY, now);
@@ -171,7 +189,8 @@ export default {
     }));
 
     await majTrafic;
-    const etat = { updated: 0, lines: {}, errors: {}, trafic: trafic.data };
+    const etat = { updated: 0, lines: {}, errors: {}, trafic: trafic.data,
+      relais: { appelsJour: compteur.n, plafond: PLAFOND_JOUR, ttlMin: ttl / 60_000, pause: now < pauseLignes } };
     if (trafic.error) etat.errors.trafic = trafic.error;
     for (const [code, ligne] of Object.entries(LINES)) {
       const m = memoire.get(code);

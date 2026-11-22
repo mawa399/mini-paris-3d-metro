@@ -1,14 +1,19 @@
 """Serveur local de Mini Paris 3D avec le temps réel PRIM.
 
 - sert la carte (index.html) sur http://localhost:8765
-- interroge l'API PRIM « estimated-timetable » ligne par ligne, en tâche de fond
-- lit les perturbations du métro (API PRIM « disruptions_bulk ») toutes les 2 minutes
+- interroge l'API PRIM « estimated-timetable » ligne par ligne, seulement quand la carte est ouverte
+  (aucune requête si personne n'a appelé /api/temps-reel depuis 3 minutes)
+- lit les perturbations du métro (API PRIM « disruptions_bulk ») toutes les 5 minutes, aux mêmes conditions
+
+Économie du quota PRIM (1 000 requêtes par jour et par API, clé partagée avec le relais Cloudflare) :
+un tour complet des 16 lignes toutes les 10 minutes par défaut, au plus 400 appels « par ligne »
+par jour pour ce serveur, et 1 h de pause si PRIM répond 429 (quota atteint).
 - expose le résultat simplifié sur /api/temps-reel (même format que le relais Cloudflare)
 
 La clé PRIM est lue dans la variable d'environnement PRIM_API_KEY ou dans un fichier .env
 (ligne PRIM_API_KEY=...). Ce fichier est exclu du dépôt par .gitignore.
 
-Usage : python serveur.py [--port 8765] [--intervalle 60]
+Usage : python serveur.py [--port 8765] [--intervalle 600]
 Bibliothèque standard uniquement, aucune installation nécessaire.
 """
 import argparse, gzip, html, json, os, re, threading, time, urllib.request, urllib.error
@@ -38,6 +43,21 @@ QUAYS, LINES = REFS['quays'], REFS['lines']   # n° de quai -> gare ; code ligne
 
 state = {'updated': 0, 'lines': {}, 'errors': {}, 'trafic': None}
 lock = threading.Lock()
+ACTIF = 180          # s : la carte est considérée ouverte si elle a appelé /api/temps-reel depuis moins de 3 min
+PLAFOND_JOUR = 400   # appels PRIM « par ligne » au plus par jour pour ce serveur
+PAUSE_429 = 3600     # s de pause après un refus de PRIM
+derniere_demande = [0.0]
+compteur = {'jour': '', 'n': 0}
+
+
+def carte_ouverte():
+    return time.time() - derniere_demande[0] < ACTIF
+
+
+def pause_si_quota(e):
+    if isinstance(e, urllib.error.HTTPError) and e.code == 429:
+        print('[PRIM] quota atteint (429) : pause d\'une heure')
+        time.sleep(PAUSE_429)
 
 
 def epoch_ms(iso):
@@ -133,6 +153,9 @@ def fetch_trafic(key):
 
 def trafic_poller(key):
     while True:
+        if not carte_ouverte():
+            time.sleep(5)
+            continue
         try:
             t = fetch_trafic(key)
             with lock:
@@ -142,14 +165,26 @@ def trafic_poller(key):
             with lock:
                 state['errors']['trafic'] = str(e)[:200]
             print(f'[PRIM] info trafic : {e}')
-        time.sleep(120)
+            pause_si_quota(e)
+        time.sleep(300)
 
 
 def poller(key, interval):
     codes = list(LINES)
     pause = max(1.0, interval / len(codes))   # requêtes étalées sur l'intervalle
+    essayees = set()
     while True:
         for code in codes:
+            while not carte_ouverte():
+                time.sleep(5)
+            jour = heure_paris().strftime('%Y%m%d')
+            if compteur['jour'] != jour:
+                compteur.update(jour=jour, n=0)
+            if compteur['n'] >= PLAFOND_JOUR:
+                time.sleep(60)
+                continue
+            compteur['n'] += 1
+            essayees.add(code)
             line = LINES[code]
             try:
                 j = fetch_line(code, key)
@@ -161,7 +196,9 @@ def poller(key, interval):
                 with lock:
                     state['errors'][line] = str(e)[:200]
                 print(f'[PRIM] ligne {line} : {e}')
-            time.sleep(pause)
+                pause_si_quota(e)
+            # premier tour rapide pour remplir la carte, puis requêtes étalées sur l'intervalle
+            time.sleep(pause if len(essayees) >= len(codes) else 1)
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -170,6 +207,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if self.path.startswith('/api/temps-reel'):
+            derniere_demande[0] = time.time()
             with lock:
                 body = json.dumps(state, ensure_ascii=False).encode()
             self.send_response(200)
@@ -190,13 +228,13 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, default=8765)
-    ap.add_argument('--intervalle', type=float, default=60, help='secondes pour un tour complet des 16 lignes')
+    ap.add_argument('--intervalle', type=float, default=600, help='secondes pour un tour complet des 16 lignes')
     a = ap.parse_args()
     key = load_key()
     if key:
         threading.Thread(target=poller, args=(key, a.intervalle), daemon=True).start()
         threading.Thread(target=trafic_poller, args=(key,), daemon=True).start()
-    mode = f'temps réel PRIM, tour complet toutes les {a.intervalle:.0f} s' if key else 'horaires théoriques'
+    mode = f'temps réel PRIM, tour complet toutes les {a.intervalle / 60:.0f} min quand la carte est ouverte' if key else 'horaires théoriques'
     print(f'Mini Paris 3D : http://localhost:{a.port}  ({mode})')
     print('Laisse cette fenêtre ouverte. Ctrl+C pour arrêter.')
     ThreadingHTTPServer(('127.0.0.1', a.port), Handler).serve_forever()
