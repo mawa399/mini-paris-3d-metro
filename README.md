@@ -64,7 +64,7 @@ Il faut Python 3.9 ou plus, sans aucune bibliothèque à installer, et une clé 
 
 ```bash
 cp .env.example .env        # puis colle ta clé PRIM dans .env
-python serveur_temps_reel.py           # ouvre ensuite http://localhost:8765
+python serveur_temps_reel.py                            # ouvre ensuite http://localhost:8765
 ```
 
 Le serveur interroge PRIM pour les 16 lignes en tâche de fond (un tour complet par minute par défaut,
@@ -79,12 +79,12 @@ Ouvre simplement `index.html` dans un navigateur : la carte tourne sur les horai
 
 ```bash
 pip install -r requirements.txt
-python scripts/01_telecharger_donnees.py    # tracés, gares, GTFS (~160 Mo) et extraits OpenStreetMap
-python scripts/02_construire_reseau_metro.py    # assemble les tronçons en itinéraires terminus → terminus
-python scripts/03_construire_fond_carte.py    # fond de carte : eau, bois, limites administratives
-python scripts/04_extraire_horaires_gtfs.py     # horaires du métro + correspondance quais → gares pour PRIM
-python scripts/06_analyses_frequentation_accessibilite.py           # fréquentation (validations IDFM) et accessibilité (GTFS)
-python scripts/05_generer_site.py         # produit index.html (page autonome)
+python scripts/01_telecharger_donnees.py                # tracés, gares, GTFS (~160 Mo) et extraits OpenStreetMap
+python scripts/02_construire_reseau_metro.py            # assemble les tronçons en itinéraires terminus → terminus
+python scripts/03_construire_fond_carte.py              # fond de carte : eau, bois, limites administratives
+python scripts/04_extraire_horaires_gtfs.py             # horaires du métro + correspondance quais → gares pour PRIM
+python scripts/06_analyses_frequentation_accessibilite.py# fréquentation (validations IDFM) et accessibilité (GTFS)
+python scripts/05_generer_site.py                       # produit index.html (page autonome)
 ```
 
 | Dossier | Contenu |
