@@ -25,6 +25,7 @@
 const REFS_URL = 'https://mawa399.github.io/mini-paris-3d-metro/data/build/realtime_refs.json';
 let QUAYS = null;           // n° de quai IDFM -> nom de gare
 let LINES = null;           // code ligne IDFM -> numéro de ligne
+// Charge (une seule fois) les correspondances quais -> gares et codes -> numéros de ligne
 async function chargerRefs() {
   if (LINES) return;
   const r = await fetch(REFS_URL);
@@ -32,6 +33,7 @@ async function chargerRefs() {
   const refs = await r.json();
   QUAYS = refs.quays; LINES = refs.lines;
 }
+// Sites autorisés à appeler le relais (le site en ligne et le serveur local)
 const ORIGINES = ['https://mawa399.github.io', 'http://localhost:8765', 'http://127.0.0.1:8765'];
 const PRIM = 'https://prim.iledefrance-mobilites.fr/marketplace/estimated-timetable?LineRef=STIF:Line::';
 const MAJ_PAR_REQUETE = 4;   // lignes rafraîchies au plus par requête
@@ -57,6 +59,7 @@ function heureParis(ms) {
 const ENTITES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 // (écrit sans barre oblique inverse pour pouvoir être collé tel quel dans l'éditeur Cloudflare)
 const NL = String.fromCharCode(10);
+// Transforme le message HTML d'une perturbation en texte simple
 function texte(html) {
   return (html || '')
     .replace(/<br[ ]*[/]?>/gi, NL).replace(/<[/]p>/gi, NL).replace(/<[^>]+>/g, '')
@@ -97,6 +100,7 @@ function simplifierTrafic(bulk, now) {
   }
   return { updated: now, lines };
 }
+// Relit l'info trafic si elle a plus de 5 min (et si PRIM n'a pas refusé récemment)
 async function rafraichirTrafic(key, now) {
   if (now - trafic.t < TRAFIC_TTL || now < pauseTrafic) return;
   trafic.t = now;
@@ -110,11 +114,13 @@ async function rafraichirTrafic(key, now) {
   }
 }
 
+// Nom de la gare correspondant à un identifiant de quai PRIM (STIF:StopPoint:Q:463181:)
 function quayName(ref) {
   const parts = (ref || '').replace(/^:+|:+$/g, '').split(':');
   return QUAYS[parts[parts.length - 1]] || null;
 }
 
+// Interroge PRIM pour une ligne et renvoie ses rames : [{id, dest, calls: [[gare, heure en ms], ...]}]
 async function fetchLine(code, key) {
   compteur.n++;
   const r = await fetch(PRIM + code + ':', { headers: { apikey: key, Accept: 'application/json' } });
@@ -142,6 +148,7 @@ async function fetchLine(code, key) {
   return journeys;
 }
 
+// En-têtes CORS : autorise le site à lire la réponse depuis le navigateur
 function entetes(req) {
   const o = req.headers.get('Origin') || '';
   return {
@@ -152,6 +159,7 @@ function entetes(req) {
   };
 }
 
+// Point d'entrée du Worker : appelé à chaque requête reçue
 export default {
   async fetch(req, env) {
     const h = entetes(req);
@@ -171,6 +179,7 @@ export default {
     if (compteur.jour !== jour) compteur = { jour, n: 0 };
     const ttl = ttlLigne(compteur.n);
     const possible = now < pauseLignes ? 0 : Math.max(0, Math.min(MAJ_PAR_REQUETE, PLAFOND_JOUR - compteur.n));
+    // lignes à relire : les plus anciennes d'abord, dans la limite du quota restant
     const perimees = Object.keys(LINES)
       .map(code => [code, (memoire.get(code) || { t: 0 }).t])
       .filter(([, t]) => now - t > ttl)
@@ -179,6 +188,7 @@ export default {
       .map(([code]) => code);
 
     const majTrafic = rafraichirTrafic(env.PRIM_API_KEY, now);
+    // relit ces lignes en parallèle ; en cas d'erreur, on garde les anciennes données
     await Promise.all(perimees.map(async code => {
       const ancien = memoire.get(code);
       try {
@@ -189,6 +199,7 @@ export default {
     }));
 
     await majTrafic;
+    // réponse renvoyée à la page : rames par ligne, erreurs, info trafic et état du quota
     const etat = { updated: 0, lines: {}, errors: {}, trafic: trafic.data,
       relais: { appelsJour: compteur.n, plafond: PLAFOND_JOUR, ttlMin: ttl / 60_000, pause: now < pauseLignes } };
     if (trafic.error) etat.errors.trafic = trafic.error;

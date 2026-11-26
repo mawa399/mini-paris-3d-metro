@@ -10,8 +10,11 @@ import networkx as nx
 segs = json.load(open('data/sources/segs.json'))
 stations = json.load(open('data/sources/stations.json'))
 
+# Uniformise les noms des lignes bis (« 7bis » et « 7b » désignent la même ligne)
 norm = lambda s: {'7bis': '7b', '3bis': '3b', '7b': '7b', '3b': '3b'}.get(s, s)
 
+# Terminus de chaque ligne : un itinéraire sera construit pour chaque paire.
+# Les lignes 7 et 13 ont deux branches, donc deux itinéraires.
 TERMINI = {
     '1': [('La Défense', 'Château de Vincennes')],
     '2': [('Porte Dauphine', 'Nation')],
@@ -33,23 +36,26 @@ TERMINI = {
     '14': [('Saint-Denis – Pleyel', "Aéroport d'Orly")],
 }
 
-R = 6371008.8
+# Distance en mètres entre deux points [lon, lat] (approximation plane, précise à l'échelle de Paris)
+R = 6371008.8   # rayon moyen de la Terre
 def dist(a, b):
     la = math.radians((a[1] + b[1]) / 2)
     dx = math.radians(b[0] - a[0]) * math.cos(la) * R
     dy = math.radians(b[1] - a[1]) * R
     return math.hypot(dx, dy)
 
+# Longueur d'une polyligne en mètres
 def plen(p):
     return sum(dist(p[i], p[i + 1]) for i in range(len(p) - 1))
 
 network = []
 for line, routes in TERMINI.items():
-    lsegs = [s for s in segs if norm(s[0]) == line]
-    color = '#' + lsegs[0][1]
+    lsegs = [s for s in segs if norm(s[0]) == line]   # tronçons de cette ligne
+    color = '#' + lsegs[0][1]                         # couleur officielle de la ligne
     # --- graphe : nœuds = extrémités regroupées à moins de 30 m
     nodes = []
     def node_of(pt):
+        # renvoie le nœud existant le plus proche (< 30 m), sinon en crée un nouveau
         for i, n in enumerate(nodes):
             if dist(n, pt) < 30:
                 return i
@@ -63,7 +69,7 @@ for line, routes in TERMINI.items():
             a, b = node_of(part[0]), node_of(part[-1])
             if a == b:
                 continue
-            w = plen(part)
+            w = plen(part)   # poids de l'arête = longueur du tronçon
             # garde le tronçon le plus court s'il y a doublon
             if G.has_edge(a, b) and G[a][b]['w'] <= w:
                 continue
@@ -72,7 +78,8 @@ for line, routes in TERMINI.items():
     bridged = 0
     while nx.number_connected_components(G) > 1:
         comps = sorted(nx.connected_components(G), key=len, reverse=True)
-        main = comps[0]
+        main = comps[0]   # plus grand morceau du réseau
+        # cherche la paire de nœuds la plus proche entre le morceau principal et les autres
         best = None
         for c in comps[1:]:
             for u in c:
@@ -81,15 +88,17 @@ for line, routes in TERMINI.items():
                     if best is None or d < best[0]:
                         best = (d, u, v)
         if best[0] > 600:
+            # au-delà de 600 m, ce n'est plus un petit trou : on n'invente pas de voie
             print(f'  ligne {line}: trou de {best[0]:.0f} m non comblé')
             break
         d, u, v = best
-        G.add_edge(u, v, w=d, geom=[nodes[u], nodes[v]], ends=(u, v))
+        G.add_edge(u, v, w=d, geom=[nodes[u], nodes[v]], ends=(u, v))   # raccord en ligne droite
         bridged += 1
     if bridged:
         print(f'  ligne {line}: {bridged} raccord(s)')
-    lst = [s for s in stations if norm(s[1]) == line]
+    lst = [s for s in stations if norm(s[1]) == line]   # gares de cette ligne
 
+    # nœud du graphe le plus proche d'une gare donnée (sert à placer les terminus)
     def nearest_node(name):
         cand = [s for s in lst if s[0] == name]
         if not cand:
@@ -98,14 +107,16 @@ for line, routes in TERMINI.items():
         return min(G.nodes, key=lambda n: dist(nodes[n], p))
 
     for (a_name, b_name) in routes:
+        # plus court chemin dans le graphe entre les deux terminus
         a, b = nearest_node(a_name), nearest_node(b_name)
         path_nodes = nx.shortest_path(G, a, b, weight='w')
+        # recolle la géométrie des tronçons dans le bon sens, bout à bout
         coords = []
         for u, v in zip(path_nodes, path_nodes[1:]):
             e = G[u][v]
             g = list(e['geom'])
             if e['ends'][0] != u:
-                g = g[::-1]
+                g = g[::-1]   # tronçon dessiné à l'envers : on l'inverse
             coords.extend(g if not coords else g[1:])
         # distances cumulées
         cum = [0.0]
@@ -113,14 +124,16 @@ for line, routes in TERMINI.items():
             cum.append(cum[-1] + dist(coords[i - 1], coords[i]))
 
         # projette chaque gare de la ligne sur l'itinéraire
+        # renvoie (distance gare -> voie, position de la gare en mètres depuis le terminus de départ)
         def project(p):
             best = (1e18, 0.0)
             for i in range(len(coords) - 1):
                 ax, ay = coords[i]; bx, by = coords[i + 1]
-                la = math.cos(math.radians(ay))
+                la = math.cos(math.radians(ay))   # correction de la longitude selon la latitude
                 vx, vy = (bx - ax) * la, by - ay
                 wx, wy = (p[0] - ax) * la, p[1] - ay
                 L2 = vx * vx + vy * vy
+                # position du point projeté sur le segment, bornée entre 0 et 1
                 t = 0 if L2 == 0 else max(0, min(1, (wx * vx + wy * vy) / L2))
                 q = (ax + (bx - ax) * t, ay + (by - ay) * t)
                 d = dist(q, p)
@@ -130,11 +143,11 @@ for line, routes in TERMINI.items():
         stops = {}
         for s in lst:
             d, along = project((s[2], s[3]))
-            if d < 120:
+            if d < 120:   # gare à moins de 120 m de la voie : elle est sur cet itinéraire
                 # une gare par nom (les quais d'une même gare sont fusionnés)
                 if s[0] not in stops or d < stops[s[0]][1]:
                     stops[s[0]] = (along, d)
-        stop_list = sorted(((v[0], k) for k, v in stops.items()))
+        stop_list = sorted(((v[0], k) for k, v in stops.items()))   # gares dans l'ordre du parcours
         # dédoublonne les gares trop proches (< 80 m le long de la voie)
         clean = []
         for along, name in stop_list:
@@ -145,10 +158,10 @@ for line, routes in TERMINI.items():
             'line': line,
             'color': color,
             'from': a_name, 'to': b_name,
-            'path': [[round(x, 5), round(y, 5)] for x, y in coords],
-            'cum': [round(c, 1) for c in cum],
-            'stops': [[name, round(al, 1)] for al, name in clean],
-            'length': round(cum[-1]),
+            'path': [[round(x, 5), round(y, 5)] for x, y in coords],   # tracé de l'itinéraire
+            'cum': [round(c, 1) for c in cum],                          # distance cumulée à chaque point
+            'stops': [[name, round(al, 1)] for al, name in clean],      # gares et leur position (m)
+            'length': round(cum[-1]),                                   # longueur totale (m)
         })
         print(f"{line:>3} {a_name} → {b_name}: {cum[-1]/1000:.1f} km, {len(clean)} gares")
 

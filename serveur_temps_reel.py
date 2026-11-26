@@ -21,11 +21,14 @@ from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
+# Dossier du projet (le serveur sert les fichiers à partir d'ici)
 ROOT = Path(__file__).resolve().parent
+# API PRIM : prochains passages d'une ligne, et perturbations en cours
 PRIM = 'https://prim.iledefrance-mobilites.fr/marketplace/estimated-timetable?LineRef=STIF:Line::{}:'
 TRAFIC = 'https://prim.iledefrance-mobilites.fr/marketplace/disruptions_bulk/disruptions/v2'
 
 
+# Lit la clé PRIM : variable d'environnement en priorité, sinon fichier .env à côté du script
 def load_key():
     key = os.environ.get('PRIM_API_KEY', '').strip()
     env = ROOT / '.env'
@@ -38,42 +41,54 @@ def load_key():
     return key
 
 
+# Correspondances produites par 04_extraire_horaires_gtfs.py
 REFS = json.loads((ROOT / 'data/build/realtime_refs.json').read_text(encoding='utf-8'))
 QUAYS, LINES = REFS['quays'], REFS['lines']   # n° de quai -> gare ; code ligne IDFM -> numéro de ligne
 
+# État partagé renvoyé à la page : horaires par ligne, erreurs éventuelles, info trafic
+# (protégé par un verrou, car il est lu et écrit par plusieurs fils d'exécution)
 state = {'updated': 0, 'lines': {}, 'errors': {}, 'trafic': None}
 lock = threading.Lock()
 ACTIF = 180          # s : la carte est considérée ouverte si elle a appelé /api/temps-reel depuis moins de 3 min
 PLAFOND_JOUR = 400   # appels PRIM « par ligne » au plus par jour pour ce serveur
 PAUSE_429 = 3600     # s de pause après un refus de PRIM
+# heure du dernier appel de la page à /api/temps-reel
 derniere_demande = [0.0]
+# appels PRIM « par ligne » du jour en cours
 compteur = {'jour': '', 'n': 0}
 
 
+# Vrai si une page a demandé le temps réel récemment : sinon, on n'interroge pas PRIM
 def carte_ouverte():
     return time.time() - derniere_demande[0] < ACTIF
 
 
+# Si PRIM répond 429 (quota du jour atteint), on arrête de l'interroger pendant une heure
 def pause_si_quota(e):
     if isinstance(e, urllib.error.HTTPError) and e.code == 429:
         print('[PRIM] quota atteint (429) : pause d\'une heure')
         time.sleep(PAUSE_429)
 
 
+# Convertit une heure ISO (« 2026-11-24T08:30:00Z ») en millisecondes depuis 1970
 def epoch_ms(iso):
     return int(datetime.fromisoformat(iso.replace('Z', '+00:00')).timestamp() * 1000)
 
 
+# Nom de la gare correspondant à un identifiant de quai PRIM
 def quay_name(ref):
     # STIF:StopPoint:Q:463181: -> « Franklin D. Roosevelt »
     parts = (ref or '').strip(':').split(':')
     return QUAYS.get(parts[-1]) if parts else None
 
 
+# Interroge PRIM pour une ligne et renvoie ses rames sous une forme simplifiée :
+# [{id, dest, calls: [[gare, heure en ms], ...]}, ...]
 def fetch_line(code, key):
     req = urllib.request.Request(PRIM.format(code), headers={'apikey': key, 'Accept': 'application/json'})
     with urllib.request.urlopen(req, timeout=30) as r:
         data = json.load(r)
+    # réponse au format SIRI : une liste de « trajets de véhicule » avec leurs passages prévus
     frames = data['Siri']['ServiceDelivery']['EstimatedTimetableDelivery'][0].get('EstimatedJourneyVersionFrame', [])
     now = time.time() * 1000
     journeys = []
@@ -85,9 +100,11 @@ def fetch_line(code, key):
                 t = c.get('ExpectedArrivalTime') or c.get('ExpectedDepartureTime')
                 if name and t:
                     calls.append([name, epoch_ms(t)])
+            # ne garde que les passages à venir (ou de moins d'une minute), dans l'ordre
             calls = sorted((c for c in calls if c[1] > now - 60_000), key=lambda c: c[1])
             if not calls:
                 continue
+            # destination : nom de la gare terminus, sinon le libellé fourni par PRIM
             dest = quay_name(vj.get('DestinationRef', {}).get('value'))
             if not dest:
                 names = vj.get('DestinationName') or [{}]
@@ -106,6 +123,7 @@ def heure_paris():
     return now + timedelta(hours=2 if ete else 1)
 
 
+# Transforme le message HTML d'une perturbation en texte simple
 def texte(h):
     h = re.sub(r'<br\s*/?>|</p>', '\n', h or '', flags=re.I)
     h = html.unescape(re.sub(r'<[^>]+>', '', h))
@@ -120,7 +138,9 @@ def fetch_trafic(key):
         if r.headers.get('Content-Encoding') == 'gzip':
             raw = gzip.decompress(raw)
     bulk = json.loads(raw)
+    # heure de Paris au format des périodes IDFM (20261124T083000)
     maintenant = heure_paris().strftime('%Y%m%dT%H%M%S')
+    # perturbations indexées par identifiant, et ordre de gravité pour le tri
     par_id = {d['id']: d for d in bulk['disruptions']}
     rang = {'BLOQUANTE': 0, 'PERTURBEE': 1, 'INFORMATION': 2}
     lines = {}
@@ -128,6 +148,7 @@ def fetch_trafic(key):
         ligne = LINES.get((l.get('id') or '').split(':')[-1])
         if l.get('mode') != 'Metro' or not ligne:
             continue
+        # pour chaque perturbation de la ligne : gares touchées, ou toute la ligne
         par_dis = {}
         for o in l.get('impactedObjects', []):
             for i in o.get('disruptionIds', []):
@@ -141,6 +162,7 @@ def fetch_trafic(key):
             d = par_id.get(i)
             if not d:
                 continue
+            # ne garde que les perturbations actives maintenant
             per = next((p for p in d.get('applicationPeriods', []) if p['begin'] <= maintenant <= p['end']), None)
             if per:
                 out.append({'sev': d.get('severity'), 'cause': d.get('cause'), 'title': d.get('title'),
@@ -151,6 +173,7 @@ def fetch_trafic(key):
     return {'updated': int(time.time() * 1000), 'lines': lines}
 
 
+# Boucle de fond : relit l'info trafic toutes les 5 minutes, seulement si la carte est ouverte
 def trafic_poller(key):
     while True:
         if not carte_ouverte():
@@ -169,6 +192,8 @@ def trafic_poller(key):
         time.sleep(300)
 
 
+# Boucle de fond : interroge les lignes une par une, en étalant les requêtes sur l'intervalle,
+# seulement si la carte est ouverte, et sans dépasser le plafond du jour
 def poller(key, interval):
     codes = list(LINES)
     pause = max(1.0, interval / len(codes))   # requêtes étalées sur l'intervalle
@@ -201,6 +226,7 @@ def poller(key, interval):
             time.sleep(pause if len(essayees) >= len(codes) else 1)
 
 
+# Serveur web : sert les fichiers du projet et la route /api/temps-reel
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=str(ROOT), **kw)
@@ -216,6 +242,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        # ne jamais servir la clé PRIM ni les données brutes
         if self.path.startswith('/.env') or self.path.startswith('/data/sources'):
             self.send_error(404)
             return
@@ -226,15 +253,18 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == '__main__':
+    # Options de lancement
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, default=8765)
     ap.add_argument('--intervalle', type=float, default=600, help='secondes pour un tour complet des 16 lignes')
     a = ap.parse_args()
     key = load_key()
+    # sans clé, le serveur sert quand même la carte (horaires théoriques)
     if key:
         threading.Thread(target=poller, args=(key, a.intervalle), daemon=True).start()
         threading.Thread(target=trafic_poller, args=(key,), daemon=True).start()
     mode = f'temps réel PRIM, tour complet toutes les {a.intervalle / 60:.0f} min quand la carte est ouverte' if key else 'horaires théoriques'
     print(f'Mini Paris 3D : http://localhost:{a.port}  ({mode})')
     print('Laisse cette fenêtre ouverte. Ctrl+C pour arrêter.')
+    # écoute uniquement sur la machine locale (127.0.0.1)
     ThreadingHTTPServer(('127.0.0.1', a.port), Handler).serve_forever()

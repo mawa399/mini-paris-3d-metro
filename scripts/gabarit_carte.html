@@ -402,10 +402,13 @@ const SCHEDULE = __SCHEDULE__;
 
 /* ---------- Lignes ---------- */
 const ORDER = ['1','2','3','3b','4','5','6','7','7b','8','9','10','11','12','13','14'];
+// Libellé affiché d'une ligne (« 7b » -> « 7 »)
 const LABEL = l => l.replace('b', '');
+// Couleur « #RRVVBB » -> [r, v, b]
 const hex2rgb = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
 const lineColor = {}, lineHex = {};
 NETWORK.forEach(r => { lineColor[r.line] = hex2rgb(r.color); lineHex[r.line] = r.color; });
+// Texte noir ou blanc selon la clarté de la couleur de fond (lisibilité des pastilles)
 const textOn = rgb => (0.299*rgb[0] + 0.587*rgb[1] + 0.114*rgb[2]) > 150 ? '#111' : '#fff';
 
 /* ---------- Heure de Paris ---------- */
@@ -422,6 +425,7 @@ function parisNow() {
   const type = wd === 0 ? 'sunday' : wd === 6 ? 'saturday' : 'weekday';
   return { secs: t, type, label: `${g('weekday')} ${g('day')} ${g('month')}` };
 }
+// Mise en forme des heures : 2 chiffres, « HH:MM:SS » et « HH:MM »
 const pad = n => String(Math.floor(n)).padStart(2, '0');
 const fmt = s => { s = ((s % 86400) + 86400) % 86400; return `${pad(s/3600)}:${pad((s%3600)/60)}:${pad(s%60)}`; };
 const fmtHM = s => fmt(s).slice(0, 5);
@@ -444,6 +448,7 @@ const DAY_LABEL = { weekday: 'horaires de semaine', saturday: 'horaires du samed
 
 /* ---------- Géométrie : position le long d'un tracé ---------- */
 const M_PER_DEG_LAT = 111320;
+// Coordonnées [lon, lat] du point situé à `dist` mètres du début du tracé (recherche dichotomique + interpolation)
 function locate(route, dist) {
   const cum = route.cum, p = route.path;
   dist = Math.max(0, Math.min(route.length, dist));
@@ -452,6 +457,7 @@ function locate(route, dist) {
   const seg = (cum[hi] - cum[lo]) || 1, f = (dist - cum[lo]) / seg;
   return [p[lo][0] + (p[hi][0] - p[lo][0]) * f, p[lo][1] + (p[hi][1] - p[lo][1]) * f];
 }
+// Courbe d'accélération / décélération douce (rames qui démarrent et freinent en gare)
 const ease = f => f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
 
 /* ---------- État de la simulation ---------- */
@@ -486,6 +492,7 @@ const repProfile = new Map();
 const patternsByLine = {};
 PATTERNS.forEach(p => { (patternsByLine[p.line] = patternsByLine[p.line] || []).push(p); });
 const matchCache = new Map();
+// Temps réel : retrouve le motif GTFS qui correspond le mieux à une rame PRIM (même destination, mêmes gares dans l'ordre)
 function matchPattern(line, dest, names) {
   const key = line + '|' + dest + '|' + names.join('>');
   if (matchCache.has(key)) return matchCache.get(key);
@@ -503,6 +510,7 @@ function matchPattern(line, dest, names) {
   matchCache.set(key, best);
   return best;
 }
+// Temps réel : position de chaque rame d'une ligne, interpolée entre ses deux passages annoncés par PRIM
 function realtimeTrains(line) {
   const out = [];
   const nowMs = Date.now();
@@ -539,11 +547,13 @@ function realtimeTrains(line) {
   }
   return kept;
 }
+// Lignes pour lesquelles on dispose de données temps réel
 function liveLines() {
   if (!RT.on || !RT.data) return new Set();
   return new Set(Object.entries(RT.data.lines).filter(([l, js]) => js.length && !RT.data.errors[l]).map(([l]) => l));
 }
 
+// Rames en circulation à l'instant T : horaires théoriques, ou temps réel quand il est activé
 function activeTrains(T) {
   const out = [];
   const live = liveLines();
@@ -576,6 +586,7 @@ function trainScale() {
   const z = state.zoom;
   return { len: Math.max(1, Math.pow(2, 14.6 - z)), wid: Math.max(1, Math.pow(2, 16 - z)) };
 }
+// Contour d'une voiture : rectangle courbé qui suit le tracé, centré à `center` mètres
 function carPolygon(route, center, length, width) {
   const pts = [locate(route, center - length / 2), locate(route, center), locate(route, center + length / 2)];
   const left = [], right = [];
@@ -590,6 +601,7 @@ function carPolygon(route, center, length, width) {
   }
   return left.concat(right.reverse());
 }
+// Découpe une rame en voitures (5 ou 6 selon la ligne), avec un petit espace entre elles
 function trainCars(t, sc) {
   const n = CARS[t.pat.line] || 5;
   const len = CAR.length * sc.len, gap = CAR.gap * sc.len, wid = Math.min(CAR.width * sc.wid, len * 0.55);
@@ -635,6 +647,7 @@ const PLATFORMS = [];
 
 /* ---------- Noms : rapprochement des gares (GTFS, PRIM, info trafic) ---------- */
 const norm = t => (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+// Clé de comparaison d'un nom de gare (minuscules, sans accents ni ponctuation)
 const slug = t => norm(t).replace(/ /g, '-');
 const STATION_KEY = new Map();   // "ligne|nom normalisé" -> index de gare
 STATIONS.forEach((s, si) => s.l.forEach(l => STATION_KEY.set(l + '|' + norm(s.n), si)));
@@ -643,6 +656,7 @@ const STATION_BY_SLUG = new Map(STATIONS.map((s, si) => [slug(s.n), si]));
 
 /* ---------- Info trafic (perturbations PRIM, servies par le relais) ---------- */
 const SEV_LABEL = { BLOQUANTE: 'Interrompu', PERTURBEE: 'Perturbé', INFORMATION: 'Information' };
+// Info trafic : perturbations par ligne, et gravité la plus forte d'une ligne
 const traficLines = () => (RT.data && RT.data.trafic && RT.data.trafic.lines) || {};
 const lineSev = l => { const ds = traficLines()[l]; return ds && ds.length ? ds[0].sev : null; };
 // gares touchées par une perturbation localisée (arrêt non desservi, etc.)
@@ -654,6 +668,7 @@ function stationAlerts(si, onlyLine) {
   }
   return out;
 }
+// Gares concernées par une perturbation (fermées, non desservies…)
 function alertedStations() {
   const m = new Map(); // si -> gravité la plus forte
   const rank = { BLOQUANTE: 0, PERTURBEE: 1, INFORMATION: 2 };
@@ -675,8 +690,11 @@ const finLe = e => {
   if (h < 5) { d.setUTCDate(d.getUTCDate() - 1); return `jusqu'au ${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)}, fin de service`; }
   return `jusqu'au ${pad(d.getUTCDate())}/${pad(d.getUTCMonth() + 1)} à ${e.slice(9, 11)}:${e.slice(11, 13)}`;
 };
+// Échappe le texte avant de l'insérer dans le HTML
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+// Pastille colorée du numéro de ligne
 const badgeHTML = l => `<span class="badge" style="background:${lineHex[l]};color:${textOn(lineColor[l])}">${LABEL(l)}${l.endsWith('b') ? '<sup style="font-size:8px">bis</sup>' : ''}</span>`;
+// Bloc HTML d'une perturbation (titre, message, fin prévue)
 const alertHTML = (l, d, withLine) => `<div class="alert sev-${d.sev}">${withLine ? `<b>Ligne ${LABEL(l)}${l.endsWith('b') ? ' bis' : ''} · ${esc(d.short || SEV_LABEL[d.sev])}</b>` : `<b>${esc(d.title)}</b>`}` +
   `${withLine ? `<small>${esc(d.title)}</small>` : ''}<p>${esc(d.msg)}</p><small>${esc(finLe(d.end))}</small></div>`;
 
@@ -725,6 +743,7 @@ function departures(si, T) {
   return list;
 }
 let boardKey = '';
+// Fiche gare : prochains départs par ligne et direction, alertes, fréquentation et accessibilité
 function renderStation() {
   const box = document.getElementById('station');
   if (state.station == null) { box.hidden = true; return; }
@@ -835,6 +854,7 @@ function sunTimes(date) {
   return [noon - H * 240, noon + H * 240];
 }
 const SUN = sunTimes(new Date());
+// Apparence choisie (clair, sombre ou auto), lue dans l'adresse ou dans les préférences du navigateur
 const prefTheme = (() => {
   const q = new URLSearchParams(location.search).get('theme');
   const m = { clair: 'light', sombre: 'dark', auto: 'auto', light: 'light', dark: 'dark' }[q];
@@ -842,6 +862,7 @@ const prefTheme = (() => {
   try { return localStorage.getItem('mp3d-theme') || 'auto'; } catch (e) { return 'auto'; }
 })();
 state.themeMode = prefTheme;
+// Apparence réellement appliquée : en mode auto, clair entre le lever et le coucher du soleil
 const effectiveTheme = () => state.themeMode !== 'auto' ? state.themeMode
   : ((state.simTime % 86400) >= SUN[0] && (state.simTime % 86400) < SUN[1] ? 'light' : 'dark');
 state.theme = effectiveTheme();
@@ -864,7 +885,9 @@ const baseLayers = () => state.tilesOk ? [] : [
     getWidth: d => d[0] === 'adm9' ? 0.6 : 0.8, getColor: d => [...PAL.adm, d[0] === 'adm9' ? 60 : 90], updateTriggers: { getColor: state.theme } }),
 ];
 
+// Gares à afficher (celles d'au moins une ligne visible)
 const visibleStations = () => STATIONS.map((s, i) => ({ ...s, i })).filter(s => s.l.some(l => !state.hidden.has(l)));
+// Couches deck.gl des lignes (tracés, lignes perturbées) et des gares
 const lineLayers = () => {
   const close = state.zoom >= 14.6;
   const tk = RT.data && RT.data.trafic ? RT.data.trafic.updated : 0;
@@ -930,10 +953,12 @@ map.on('data', e => { if (e.sourceId === 'omt' && e.dataType === 'source' && e.t
 ['dragstart', 'wheel', 'touchstart'].forEach(ev => map.on(ev, e => { if (e.originalEvent) setCam(null); }));
 
 const tipStyle = { background: '#111a2e', color: '#e6ebf5', fontFamily: 'Barlow, sans-serif', fontSize: '13px', borderRadius: '6px', padding: '6px 9px', border: '1px solid rgba(148,163,196,.25)', whiteSpace: 'pre-line', maxWidth: '280px' };
+// Style de l'info-bulle selon l'apparence
 const setTip = t => Object.assign(tipStyle, t === 'light'
   ? { background: '#ffffff', color: '#141a2a', border: '1px solid rgba(20,30,60,.15)' }
   : { background: '#111a2e', color: '#e6ebf5', border: '1px solid rgba(148,163,196,.25)' });
 setTip(state.theme);
+// Applique l'apparence : couleurs de l'interface, fond de carte clair ou sombre
 function applyTheme() {
   const t = effectiveTheme();
   document.querySelectorAll('#theme-btns [data-theme]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.theme === state.themeMode)));
@@ -988,6 +1013,7 @@ function setCam(mode) {
 document.getElementById('b-follow').addEventListener('click', () => setCam(state.cam === 'follow' ? null : 'follow'));
 document.getElementById('b-cabin').addEventListener('click', () => setCam(state.cam === 'cabin' ? null : 'cabin'));
 let camBearing = null;
+// Caméra en mode suivi ou vue cabine : se place derrière la rame sélectionnée
 function driveCamera(sel) {
   if (!state.cam || !sel) return;
   const sh = sel.pat.shape;
@@ -1016,6 +1042,7 @@ function trainColor(c) {
   return [...base.map(v => Math.round(v * 0.45 + 150 * 0.55)), 120];
 }
 let trains = [];
+// Redessine toutes les couches deck.gl (fond, isochrones, lignes, analyses, rames)
 function render() {
   trains = activeTrains(state.simTime);
   const sel = trains.find(t => t.id === state.selected);
@@ -1057,6 +1084,7 @@ function upcomingStops(sel) {
   return out;
 }
 let stopsKey = '';
+// Fiche rame : ligne, destination, prochains arrêts avec leurs heures
 function renderInfo(sel) {
   const box = document.getElementById('info');
   sel = sel || trains.find(t => t.id === state.selected);
@@ -1099,6 +1127,7 @@ speedBtns.forEach(b => b.addEventListener('click', () => {
   if (!state.playing) togglePlay();
 }));
 const playBtn = document.getElementById('play');
+// Lecture / pause de l'horloge simulée
 function togglePlay() {
   state.playing = !state.playing;
   playBtn.textContent = state.playing ? '❚❚' : '▶';
@@ -1112,6 +1141,7 @@ document.getElementById('now').addEventListener('click', () => {
 });
 
 const dayBtns = [...document.querySelectorAll('[data-day]')];
+// Change le type de jour (semaine, samedi, dimanche)
 function setDay(type) {
   if (state.dayType !== type) state.selected = null;
   state.dayType = type;
@@ -1120,6 +1150,7 @@ function setDay(type) {
 dayBtns.forEach(b => b.addEventListener('click', () => { setLive(false); state.autoDay = false; setDay(b.dataset.day); }));
 
 const liveBtn = document.getElementById('live'), liveStatus = document.getElementById('livestatus');
+// Active ou coupe le mode temps réel PRIM
 function setLive(on) {
   RT.on = on && RT.available;
   liveBtn.setAttribute('aria-pressed', String(RT.on));
@@ -1134,6 +1165,7 @@ function setLive(on) {
 }
 const NOTE_THEO = document.getElementById('note').textContent;
 const CREDITS_THEO = document.getElementById('credits-src').innerHTML;
+// Texte d'explication en bas du panneau, selon le mode (théorique ou temps réel)
 function updateNotes() {
   document.getElementById('note').textContent = RT.on
     ? "Temps réel PRIM (Île-de-France Mobilités) : chaque rame est placée d'après son heure de passage annoncée à la prochaine gare. Les lignes sans données temps réel restent sur l'horaire théorique."
@@ -1152,7 +1184,9 @@ const RT_URL = LOCAL ? '/api/temps-reel' : (RELAIS_URL ? RELAIS_URL.replace(/\/$
 // (onglet masqué ou 15 min sans interaction : pause ; le moindre geste relance).
 const RT_INACTIF = 15 * 60_000;
 let rtDernierGeste = Date.now(), rtTimer = null, rtPause = false;
+// Programme la prochaine interrogation du relais temps réel
 function rtPlanifier(ms) { clearTimeout(rtTimer); rtTimer = setTimeout(pollRealtime, ms); }
+// Interroge le relais (ou le serveur local) et met à jour les données temps réel
 async function pollRealtime() {
   if (!RT_URL) return;
   if (document.hidden || Date.now() - rtDernierGeste > RT_INACTIF) { rtPause = true; updateLiveStatus(); return; }
@@ -1174,6 +1208,7 @@ async function pollRealtime() {
     if (RT.available) rtPlanifier(60000);
   }
 }
+// Reprend le temps réel dès que l'utilisateur touche la carte
 function rtReprendre() {
   rtDernierGeste = Date.now();
   if (rtPause && !document.hidden) { rtPause = false; pollRealtime(); }
@@ -1181,6 +1216,7 @@ function rtReprendre() {
 ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(ev => addEventListener(ev, rtReprendre, { passive: true }));
 document.addEventListener('visibilitychange', () => { if (!document.hidden) rtReprendre(); });
 pollRealtime();
+// Statut affiché à côté du bouton Temps réel (lignes reçues, âge des données, pause)
 function updateLiveStatus() {
   if (!RT.available || !RT.data) return;
   const n = Object.values(RT.data.lines).filter(js => js.length).length;
@@ -1210,17 +1246,21 @@ document.getElementById('nstations').textContent = STATIONS.length;
 
 /* ---------- Panneaux : rame, gare, info trafic (un seul à la fois à droite) ---------- */
 state.traficOpen = false; state.traficLine = null;
+// Ferme les panneaux latéraux, sauf celui indiqué
 function hidePanels(except) {
   for (const id of ['info', 'station', 'trafic']) if (id !== except) document.getElementById(id).hidden = true;
   if (except !== 'info') { state.selected = null; setCam(null); }
   if (except !== 'station') state.station = null;
   if (except !== 'trafic') state.traficOpen = false;
 }
+// Ouvre la fiche d'une rame
 function openTrain(id) { hidePanels('info'); state.selected = id; stopsKey = ''; renderInfo(); syncURL(); }
+// Ouvre la fiche d'une gare (et y déplace la caméra si `fly`)
 function openStation(si, fly) {
   hidePanels('station'); state.station = si; boardKey = ''; renderStation(); syncURL();
   if (fly) map.flyTo({ center: STATIONS[si].p, zoom: Math.max(15.2, Math.min(map.getZoom(), 16.5)), pitch: 55, duration: 1600 });
 }
+// Cadre la caméra sur une ligne entière
 function fitLine(l, duration = 1600) {
   const b = new maplibregl.LngLatBounds();
   NETWORK.filter(r => r.line === l).forEach(r => r.path.forEach(pt => b.extend(pt)));
@@ -1228,6 +1268,7 @@ function fitLine(l, duration = 1600) {
   const wide = innerWidth > 700;
   map.fitBounds(b, { padding: wide ? { top: 60, bottom: 90, left: 340, right: 380 } : { top: 40, bottom: 260, left: 30, right: 30 }, pitch: 40, bearing: 0, duration });
 }
+// Ouvre le panneau Info trafic (toutes les lignes, ou une seule)
 function openTrafic(line, fly) {
   hidePanels('trafic'); state.traficOpen = true; state.traficLine = line || null; traficKey = ''; renderTrafic(); syncURL();
   if (line && fly) { state.hidden.delete(line); chipEls[line] && chipEls[line].setAttribute('aria-pressed', 'true'); fitLine(line); }
@@ -1236,6 +1277,7 @@ document.getElementById('close-t').addEventListener('click', () => { hidePanels(
 document.getElementById('trafic-btn').addEventListener('click', () => state.traficOpen && !state.traficLine ? (hidePanels(null), syncURL()) : openTrafic(null));
 
 let traficKey = '';
+// Contenu du panneau Info trafic
 function renderTrafic() {
   const box = document.getElementById('trafic');
   if (!state.traficOpen) { box.hidden = true; return; }
@@ -1275,6 +1317,7 @@ document.getElementById('t-body').addEventListener('click', e => {
   if (e.target.closest('[data-back]')) openTrafic(null);
 });
 
+// Met à jour le bouton Info trafic et les pastilles des lignes perturbées
 function updateTraficUI() {
   const T = RT.data && RT.data.trafic, btn = document.getElementById('trafic-btn');
   for (const [l, el] of Object.entries(chipEls)) {
@@ -1320,6 +1363,7 @@ const SEARCH = [
 ].map(x => ({ ...x, words: x.key.split(' ') }));
 const qIn = document.getElementById('q'), qRes = document.getElementById('q-res');
 let qItems = [], qActive = -1;
+// Recherche : gares et lignes dont le nom contient le texte tapé
 function searchFor(text) {
   const q = norm(text);
   if (!q) return [];
@@ -1336,7 +1380,9 @@ function searchFor(text) {
   }
   return out.sort((a, b) => b[0] - a[0] || a[1].label.length - b[1].label.length).slice(0, 8).map(a => a[1]);
 }
+// Petite pastille de ligne dans les résultats de recherche
 const miniHTML = l => `<span class="mini" style="background:${lineHex[l]};color:${textOn(lineColor[l])}">${LABEL(l)}</span>`;
+// Affiche la liste des résultats de recherche
 function renderSearch() {
   qItems = searchFor(qIn.value);
   if (!qIn.value.trim()) { qRes.hidden = true; qIn.setAttribute('aria-expanded', 'false'); return; }
@@ -1347,12 +1393,14 @@ function renderSearch() {
   qRes.hidden = false; qIn.setAttribute('aria-expanded', 'true');
   qIn.setAttribute('aria-activedescendant', qActive >= 0 ? `qo-${qActive}` : '');
 }
+// Sélection d'un résultat : ouvre la gare ou la ligne choisie
 function pick(x) {
   if (!x) return;
   qIn.value = ''; qActive = -1; renderSearch(); qIn.blur();
   if (x.type === 'gare') { setLineVisible(STATIONS[x.si].l); openStation(x.si, true); }
   else openTrafic(x.l, true);
 }
+// Réaffiche des lignes masquées
 function setLineVisible(ls) { ls.forEach(l => { if (state.hidden.has(l)) { state.hidden.delete(l); chipEls[l] && chipEls[l].setAttribute('aria-pressed', 'true'); } }); }
 qIn.addEventListener('input', () => { qActive = 0; renderSearch(); });
 qIn.addEventListener('keydown', e => {
@@ -1372,6 +1420,7 @@ qIn.addEventListener('focus', () => { if (qIn.value.trim()) renderSearch(); });
 const EN = STATIONS.map(s => ENRICH[s.z] || {});
 const DT_IDX = { weekday: 0, saturday: 1, sunday: 2 };
 const DT_TXT = ['jour de semaine', 'samedi', 'dimanche'];
+// Nombre formaté à la française (12 345), et heure simulée en cours
 const fmtN = n => Math.round(n).toLocaleString('fr-FR');
 const hourOf = () => Math.floor((state.simTime % 86400) / 3600);
 state.freq = false; state.acc = false; state.iso = null;
@@ -1382,6 +1431,7 @@ let FREQ_REF = 1;
 EN.forEach((e, si) => { if (e.v) for (let d = 0; d < 3; d++) for (let h = 0; h < 24; h++) FREQ_REF = Math.max(FREQ_REF, hourly(si, h, d)); });
 const FREQ_M = 650 / FREQ_REF;   // la station la plus chargée à son heure de pointe : 650 m de haut
 const RAMP = [[255, 224, 138], [255, 159, 26], [232, 65, 44], [155, 27, 90]];
+// Couleur de la fréquentation, du jaune pâle (faible) au rouge (forte)
 function rampColor(f) {
   f = Math.max(0, Math.min(1, f)) * (RAMP.length - 1);
   const i = Math.min(RAMP.length - 2, Math.floor(f)), t = f - i;
@@ -1389,6 +1439,7 @@ function rampColor(f) {
 }
 const RANK = new Map(EN.map((e, si) => [si, e.v ? e.v[0] : -1]).filter(x => x[1] >= 0).sort((a, b) => b[1] - a[1]).map(([si], r) => [si, r + 1]));
 let freqTop = null;
+// Couche Fréquentation : une colonne par gare, hauteur = entrées de l'heure en cours
 function freqLayers() {
   if (!state.freq) return [];
   const h = hourOf(), d = DT_IDX[state.dayType], close = state.zoom >= 14.6;
@@ -1417,6 +1468,7 @@ function accLevel(si) {
 const ACC = STATIONS.map((s, si) => accLevel(si));
 const ACC_N = { 1: ACC.filter(x => x === 1).length, 3: ACC.filter(x => x === 3).length };
 const ACC_TXT = { 1: 'accessible', 3: 'en partie', 2: 'non accessible', 0: 'inconnu' };
+// Couche Accessibilité : gares accessibles, partiellement ou non accessibles en fauteuil
 function accLayers() {
   if (!state.acc) return [];
   const close = state.zoom >= 14.6;
@@ -1440,6 +1492,7 @@ STOPS_OF.forEach((list, si) => list.forEach(({ pat, i }) => {
   PAT_ST.get(pat)[i] = si;
 }));
 const CONN = {};
+// Isochrones : liste de toutes les liaisons gare -> gare du jour, triées par heure de départ (calculée une fois)
 function connections(dt) {
   if (CONN[dt]) return CONN[dt];
   const D = DAYS[dt];
@@ -1459,6 +1512,7 @@ function connections(dt) {
   return (CONN[dt] = { n, ntrips: D.start.length, dep: pick(dep, Float64Array), arr: pick(arr, Float64Array),
     from: pick(from, Int16Array), to: pick(to, Int16Array), trip: pick(trip, Int32Array) });
 }
+// Isochrones : heure d'arrivée au plus tôt dans chaque gare depuis `src` (Connection Scan Algorithm, avec temps de correspondance)
 function earliestArrivals(src, T0, dt) {
   const C = connections(dt), best = new Float64Array(STATIONS.length).fill(Infinity), onTrip = new Uint8Array(C.ntrips);
   best[src] = T0;
@@ -1487,7 +1541,9 @@ const GRID = (() => {
   const nx = Math.ceil((x1 - x0) / dx), ny = Math.ceil((y1 - y0) / dy);
   return { x0, y0, dx, dy, nx, ny, cell };
 })();
+// Contour d'une case de la grille
 const cellPoly = i => { const g = GRID, x = g.x0 + (i % g.nx) * g.dx, y = g.y0 + Math.floor(i / g.nx) * g.dy; return [[x, y], [x + g.dx, y], [x + g.dx, y + g.dy], [x, y + g.dy]]; };
+// Isochrones : temps de trajet vers chaque case de la grille (métro + marche jusqu'à 1 km)
 function computeIso(src) {
   const T0 = state.simTime, dt = state.dayType, best = earliestArrivals(src, T0, dt), g = GRID;
   const val = new Float32Array(g.nx * g.ny).fill(Infinity);
@@ -1518,13 +1574,16 @@ function computeIso(src) {
   document.getElementById('b-iso').setAttribute('aria-pressed', String(state.station === src));
 }
 const ISO_BANDS = [[900, [46, 204, 113]], [1800, [199, 217, 58]], [2700, [243, 156, 18]], [3600, [231, 76, 60]]];
+// Couleur d'une case selon la tranche de temps (15, 30, 45, 60 min)
 const isoColor = v => (ISO_BANDS.find(b => v <= b[0]) || ISO_BANDS[3])[1];
+// Couche deck.gl des isochrones
 function isoLayers() {
   const I = state.iso; if (!I) return [];
   const a = state.theme === 'light' ? 120 : 105;
   return [new SolidPolygonLayer({ id: 'iso', data: I.cells, getPolygon: c => c.poly, getFillColor: c => [...isoColor(c.v), a], pickable: true,
     updateTriggers: { getFillColor: [I.T0, I.src, state.theme] } })];
 }
+// Ferme les isochrones
 function closeIso() { state.iso = null; document.getElementById('iso-legend').hidden = true; document.getElementById('b-iso').setAttribute('aria-pressed', 'false'); }
 document.getElementById('iso-close').addEventListener('click', closeIso);
 document.getElementById('b-iso').addEventListener('click', () => {
@@ -1538,6 +1597,7 @@ function toggleBtn(id, key) {
   b.addEventListener('click', () => { state[key] = !state[key]; b.setAttribute('aria-pressed', String(state[key])); updateHints(); });
 }
 toggleBtn('t-freq', 'freq'); toggleBtn('t-acc', 'acc');
+// Légendes et aides affichées selon les analyses actives
 function updateHints() {
   const fh = document.getElementById('freq-hint');
   fh.hidden = document.getElementById('freq-ramp').hidden = !state.freq;
@@ -1556,6 +1616,7 @@ function sparkSVG(si, d) {
   const bars = row.map((v, i) => `<rect x="${i * 10 + 1}" y="${40 - v / max * 38}" width="8" height="${v / max * 38}" rx="1.5" fill="${i === h ? '#ffcd00' : 'currentColor'}" opacity="${i === h ? 1 : .45}"/>`).join('');
   return `<svg class="spark" viewBox="0 0 240 42" preserveAspectRatio="none" role="img" aria-label="Profil horaire des entrées">${bars}</svg>`;
 }
+// Bloc « fréquentation et accessibilité » de la fiche gare, avec la petite courbe horaire
 function factsHTML(si) {
   const e = EN[si], d = DT_IDX[state.dayType], parts = [];
   if (e.v) {
@@ -1574,6 +1635,7 @@ function factsHTML(si) {
 
 /* ---------- Voir la rue : photo Panoramax la plus proche, sinon Google Street View ---------- */
 let pannellumReady = null;
+// Charge la visionneuse 360° (Pannellum) seulement au premier usage
 function loadPannellum() {
   if (pannellumReady) return pannellumReady;
   pannellumReady = new Promise((ok, ko) => {
@@ -1584,6 +1646,7 @@ function loadPannellum() {
   return pannellumReady;
 }
 let panoViewer = null, streetReq = 0;
+// Voir la rue : cherche la photo Panoramax la plus proche de la gare et l'affiche (360° si possible)
 async function openStreet(si) {
   const s = STATIONS[si], box = document.getElementById('street'), pano = document.getElementById('pano'), req = ++streetReq;
   const [lon, lat] = s.p;
@@ -1631,6 +1694,7 @@ async function openStreet(si) {
   }
   pano.innerHTML = `<img src="${img}" alt="Vue de la rue près de la station ${esc(s.n)}">`;
 }
+// Ferme la vue de rue
 function closeStreet() { streetReq++; document.getElementById('street').hidden = true; if (panoViewer) { try { panoViewer.destroy(); } catch (e) { /* rien */ } panoViewer = null; } }
 document.getElementById('st-close').addEventListener('click', closeStreet);
 document.getElementById('b-street').addEventListener('click', () => { if (state.station != null) openStreet(state.station); });
@@ -1645,6 +1709,7 @@ document.getElementById('collapse').addEventListener('click', e => {
 
 /* ---------- Boucle ---------- */
 let last = performance.now();
+// Boucle d'animation : avance l'horloge, déplace les rames et rafraîchit l'affichage à chaque image
 function frame(now) {
   const dt = Math.min(0.25, (now - last) / 1000); last = now;
   if (RT.on) { state.simTime = parisNow().secs; updateLiveStatus(); }
