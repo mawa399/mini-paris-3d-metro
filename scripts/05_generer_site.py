@@ -19,7 +19,7 @@ stations = [{'n': g['n'], 'z': str(z),
 enrich = json.load(open('data/build/enrich.json', encoding='utf-8'))
 enrich = {k: v for k, v in enrich.items() if v}
 
-html = open('scripts/template.html').read()
+html = open('scripts/gabarit_carte.html').read()
 html = (html.replace('__NETWORK__', json.dumps(net, ensure_ascii=False, separators=(',', ':')))
             .replace('__BASEMAP__', json.dumps(base, separators=(',', ':')))
             .replace('__STATIONS__', json.dumps(stations, ensure_ascii=False, separators=(',', ':')))

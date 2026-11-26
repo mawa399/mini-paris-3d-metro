@@ -13,7 +13,7 @@ par jour pour ce serveur, et 1 h de pause si PRIM répond 429 (quota atteint).
 La clé PRIM est lue dans la variable d'environnement PRIM_API_KEY ou dans un fichier .env
 (ligne PRIM_API_KEY=...). Ce fichier est exclu du dépôt par .gitignore.
 
-Usage : python serveur.py [--port 8765] [--intervalle 600]
+Usage : python serveur_temps_reel.py [--port 8765] [--intervalle 600]
 Bibliothèque standard uniquement, aucune installation nécessaire.
 """
 import argparse, gzip, html, json, os, re, threading, time, urllib.request, urllib.error

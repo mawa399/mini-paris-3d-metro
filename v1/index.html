@@ -366,7 +366,7 @@ function positionIn(pr, e) {
   return { d: pat.stops[i].d + (pat.stops[i + 1].d - pat.stops[i].d) * ease(f), atStop: null, next: i + 1 };
 }
 
-/* ---------- Temps réel PRIM (servi par serveur.py) ---------- */
+/* ---------- Temps réel PRIM (servi par serveur_temps_reel.py) ---------- */
 const RT = { available: false, on: false, data: null };
 // profil représentatif (durée médiane) de chaque motif
 const repProfile = new Map();
@@ -949,8 +949,8 @@ function updateNotes() {
 }
 liveBtn.addEventListener('click', () => setLive(!RT.on));
 let rtFirst = true;
-// Temps réel : serveur local (serveur.py) sur le PC, relais Cloudflare pour la page en ligne.
-const RELAIS_URL = 'https://mini-paris-3d-temps-reel.mawadiaw1.workers.dev';   // relais Cloudflare (relais-cloudflare/worker.js)
+// Temps réel : serveur local (serveur_temps_reel.py) sur le PC, relais Cloudflare pour la page en ligne.
+const RELAIS_URL = 'https://mini-paris-3d-temps-reel.mawadiaw1.workers.dev';   // relais Cloudflare (relais-cloudflare/relais_prim.js)
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
 const RT_URL = LOCAL ? '/api/temps-reel' : (RELAIS_URL ? RELAIS_URL.replace(/\/$/, '') + '/api/temps-reel' : null);
 async function pollRealtime() {

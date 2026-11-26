@@ -141,7 +141,7 @@ footer { border-top: 1px solid var(--rule); margin-top: 44px; padding-top: 18px;
     <p>L'API PRIM demande une clé personnelle, qui ne doit jamais apparaître dans une page web. Un petit relais fait donc l'intermédiaire :</p>
     <ul>
       <li><strong>En ligne</strong>, un <strong>Cloudflare Worker</strong> garde la clé en secret, interroge PRIM ligne par ligne (en gardant chaque ligne une minute en mémoire pour ménager le quota) et ne renvoie à la carte qu'un résumé léger.</li>
-      <li><strong>Sur un ordinateur</strong>, le script <code>serveur.py</code> fait la même chose, sans aucune bibliothèque à installer.</li>
+      <li><strong>Sur un ordinateur</strong>, le script <code>serveur_temps_reel.py</code> fait la même chose, sans aucune bibliothèque à installer.</li>
     </ul>
     <p>Si le relais ne répond pas, la carte reste sur les horaires théoriques, et le dit.</p>
   </section>

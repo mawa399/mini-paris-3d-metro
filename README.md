@@ -45,18 +45,18 @@ La version 1 est conservée dans le dossier [`v1/`](v1/) et dans la branche Git 
 ### En ligne
 
 La page publiée sur GitHub Pages reçoit le temps réel par un petit relais
-[Cloudflare Worker](relais-cloudflare/worker.js) : il interroge PRIM avec une clé gardée en secret côté
+[Cloudflare Worker](relais-cloudflare/relais_prim.js) : il interroge PRIM avec une clé gardée en secret côté
 Cloudflare (jamais dans la page), garde chaque ligne en mémoire 60 s et renvoie le même JSON que le
 serveur local, ainsi que les perturbations en cours sur le métro (relues toutes les 2 minutes).
 Si le relais ne répond pas, la carte reste sur les horaires théoriques.
 
-Pour déployer ton propre relais : crée un Worker à partir de `relais-cloudflare/worker.js`
+Pour déployer ton propre relais : crée un Worker à partir de `relais-cloudflare/relais_prim.js`
 (ou `npx wrangler deploy` dans ce dossier), ajoute le secret `PRIM_API_KEY`, puis indique son adresse
-dans `RELAIS_URL` (scripts/template.html) et reconstruis `index.html`.
+dans `RELAIS_URL` (scripts/gabarit_carte.html) et reconstruis `index.html`.
 
 ### En local avec le temps réel
 
-Sous Windows, double-clique sur `lancer.bat` : il trouve Python, demande la clé PRIM la première fois
+Sous Windows, double-clique sur `lancer_mini_paris_3d.bat` : il trouve Python, demande la clé PRIM la première fois
 et ouvre la carte.
 
 Il faut Python 3.9 ou plus, sans aucune bibliothèque à installer, et une clé API PRIM gratuite
@@ -64,7 +64,7 @@ Il faut Python 3.9 ou plus, sans aucune bibliothèque à installer, et une clé 
 
 ```bash
 cp .env.example .env        # puis colle ta clé PRIM dans .env
-python serveur.py           # ouvre ensuite http://localhost:8765
+python serveur_temps_reel.py           # ouvre ensuite http://localhost:8765
 ```
 
 Le serveur interroge PRIM pour les 16 lignes en tâche de fond (un tour complet par minute par défaut,
@@ -79,12 +79,12 @@ Ouvre simplement `index.html` dans un navigateur : la carte tourne sur les horai
 
 ```bash
 pip install -r requirements.txt
-python scripts/01_fetch_sources.py    # tracés, gares, GTFS (~160 Mo) et extraits OpenStreetMap
-python scripts/02_build_network.py    # assemble les tronçons en itinéraires terminus → terminus
-python scripts/03_build_basemap.py    # fond de carte : eau, bois, limites administratives
-python scripts/04_extract_gtfs.py     # horaires du métro + correspondance quais → gares pour PRIM
-python scripts/06_enrich.py           # fréquentation (validations IDFM) et accessibilité (GTFS)
-python scripts/05_assemble.py         # produit index.html (page autonome)
+python scripts/01_telecharger_donnees.py    # tracés, gares, GTFS (~160 Mo) et extraits OpenStreetMap
+python scripts/02_construire_reseau_metro.py    # assemble les tronçons en itinéraires terminus → terminus
+python scripts/03_construire_fond_carte.py    # fond de carte : eau, bois, limites administratives
+python scripts/04_extraire_horaires_gtfs.py     # horaires du métro + correspondance quais → gares pour PRIM
+python scripts/06_analyses_frequentation_accessibilite.py           # fréquentation (validations IDFM) et accessibilité (GTFS)
+python scripts/05_generer_site.py         # produit index.html (page autonome)
 ```
 
 | Dossier | Contenu |

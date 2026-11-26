@@ -4,7 +4,7 @@
 - Horaires théoriques : GTFS IDFM (archive d'environ 160 Mo, non versionnée)
 - Fond de carte : OpenStreetMap via l'API Overpass (eau, bois, limites administratives)
 
-Usage : python scripts/01_fetch_sources.py [--skip-gtfs] [--skip-osm]
+Usage : python scripts/01_telecharger_donnees.py [--skip-gtfs] [--skip-osm]
 """
 import json, sys, urllib.request, urllib.parse
 from pathlib import Path

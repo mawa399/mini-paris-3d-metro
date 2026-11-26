@@ -6,7 +6,7 @@
   (1 = accessible en fauteuil, 2 = non accessible, 0 = inconnu).
 
 Sortie : data/build/enrich.json, indexé par identifiant de zone de correspondance (id_zdc).
-Usage : python scripts/06_enrich.py   (le GTFS doit être dans data/sources/IDFM-gtfs.zip)
+Usage : python scripts/06_analyses_frequentation_accessibilite.py   (le GTFS doit être dans data/sources/IDFM-gtfs.zip)
 """
 import collections, csv, datetime, io, json, statistics, urllib.request, zipfile
 from pathlib import Path

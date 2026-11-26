@@ -1,7 +1,7 @@
 /**
  * Mini Paris 3D – relais temps réel PRIM (Cloudflare Worker)
  *
- * Joue en ligne le rôle de serveur.py : interroge l'API PRIM « estimated-timetable »
+ * Joue en ligne le rôle de serveur_temps_reel.py : interroge l'API PRIM « estimated-timetable »
  * ligne par ligne et renvoie sur /api/temps-reel le même JSON simplifié
  * { updated, lines: { "1": [{id, dest, calls:[[gare, heure_ms], …]}], … }, errors, trafic }.
  *

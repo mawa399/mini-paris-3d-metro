@@ -22,7 +22,7 @@ if not exist ".env" (
 )
 
 start "" /min cmd /c "timeout /t 3 >nul & start http://localhost:8765"
-%PY% serveur.py
+%PY% serveur_temps_reel.py
 echo.
 echo Le serveur s'est arrete. Lis le message ci-dessus.
 pause
