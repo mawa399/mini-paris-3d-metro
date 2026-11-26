@@ -83,7 +83,7 @@ python scripts/01_telecharger_donnees.py                # tracés, gares, GTFS (
 python scripts/02_construire_reseau_metro.py            # assemble les tronçons en itinéraires terminus → terminus
 python scripts/03_construire_fond_carte.py              # fond de carte : eau, bois, limites administratives
 python scripts/04_extraire_horaires_gtfs.py             # horaires du métro + correspondance quais → gares pour PRIM
-python scripts/06_analyses_frequentation_accessibilite.py# fréquentation (validations IDFM) et accessibilité (GTFS)
+python scripts/06_analyses_frequentation_accessibilite.py   # fréquentation (validations IDFM) et accessibilité (GTFS)
 python scripts/05_generer_site.py                       # produit index.html (page autonome)
 ```
 
